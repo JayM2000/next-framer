@@ -111,7 +111,8 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
 
   const displayItem = item || cachedItem;
 
-  const { dispatch, copyToClipboard, showToast } = useVault();
+  const { dispatch, copyToClipboard, showToast, currentDbUserId } = useVault();
+  const isOwner = currentDbUserId !== null && displayItem?.userId === currentDbUserId;
   const [showPassword, setShowPassword] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -664,14 +665,16 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
           className="flex shrink-0 items-center justify-between border-t border-[var(--vault-border)] px-5 py-3 sm:px-6"
         >
           <div className="flex gap-2 flex-wrap">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleToggleVisibility}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-border)] px-3 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
-            >
-              {displayItem.visibility === 'public' ? <Lock className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
-              {displayItem.visibility === 'public' ? 'Make Private' : 'Make Public'}
-            </motion.button>
+            {isOwner && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggleVisibility}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-border)] px-3 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
+              >
+                {displayItem.visibility === 'public' ? <Lock className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
+                {displayItem.visibility === 'public' ? 'Make Private' : 'Make Public'}
+              </motion.button>
+            )}
 
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -693,18 +696,20 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
             </motion.button>
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleDelete}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-              confirmDelete
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                : 'border border-[var(--vault-border)] text-[var(--vault-muted)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-            }`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {confirmDelete ? 'Confirm Delete' : 'Delete'}
-          </motion.button>
+          {isOwner && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleDelete}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                confirmDelete
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'border border-[var(--vault-border)] text-[var(--vault-muted)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+              }`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {confirmDelete ? 'Confirm Delete' : 'Delete'}
+            </motion.button>
+          )}
         </motion.div>
       </motion.div>
       )}

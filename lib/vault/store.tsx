@@ -72,6 +72,7 @@ interface VaultContextType {
   isLoading: boolean;
   isCreating: boolean;
   isRefetching: boolean;
+  currentDbUserId: number | null;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -297,8 +298,17 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const isCreating = createMutation.isPending;
   const isRefetching = (isFetchingUserItems && !isLoadingUserItems) || (isFetchingPublic && !isLoadingPublic);
 
+  // Derive the current user's DB id from their items
+  const currentDbUserId: number | null = useMemo(() => {
+    if (userItems.length > 0) {
+      const first = userItems[0] as VaultItem;
+      return first.userId ?? null;
+    }
+    return null;
+  }, [userItems]);
+
   return (
-    <VaultContext.Provider value={{ state, dispatch, showToast, copyToClipboard, isLoading, isCreating, isRefetching }}>
+    <VaultContext.Provider value={{ state, dispatch, showToast, copyToClipboard, isLoading, isCreating, isRefetching, currentDbUserId }}>
       {children}
     </VaultContext.Provider>
   );

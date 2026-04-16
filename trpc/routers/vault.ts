@@ -77,6 +77,7 @@ function formatItem(
 ) {
   return {
     id: row.id,
+    userId: row.user_id ?? null,
     type: row.type as "password" | "note" | "clipboard",
     visibility: row.visibility as "public" | "private",
     title: row.title,

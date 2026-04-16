@@ -9,6 +9,7 @@ export interface Tag {
 
 export interface VaultItem {
   id: string;
+  userId?: number | null;  // null = anonymous item
   type: ItemType;
   visibility: Visibility;
   title: string;

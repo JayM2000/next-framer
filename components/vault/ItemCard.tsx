@@ -32,10 +32,11 @@ interface Props {
 }
 
 export default function ItemCard({ item, index, onClick, onStatsClick }: Props) {
-  const { dispatch, copyToClipboard } = useVault();
+  const { dispatch, copyToClipboard, currentDbUserId } = useVault();
   const [copied, setCopied] = useState(false);
   const Icon = typeIcons[item.type];
   const isClipboard = item.type === 'clipboard';
+  const isOwner = currentDbUserId !== null && item.userId === currentDbUserId;
 
   const handleQuickCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,14 +148,16 @@ export default function ItemCard({ item, index, onClick, onStatsClick }: Props) 
             <span>Stats</span>
           </button>
         )}
-        <button
-          onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
-          className="vault-action-btn ml-auto"
-          title="Make Private"
-        >
-          <Lock className="h-3.5 w-3.5" />
-          <span>Private</span>
-        </button>
+        {isOwner && (
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
+            className="vault-action-btn ml-auto"
+            title="Make Private"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            <span>Private</span>
+          </button>
+        )}
       </div>
     </motion.div>
   );
