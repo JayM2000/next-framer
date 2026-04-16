@@ -117,14 +117,494 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Static background */
+.app-bg {
+  background-color: #f7f7f8;
+  min-height: 100vh;
+}
+
+.dark .app-bg {
+  background-color: #0c0c14;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
   }
   html {
     @apply font-sans;
   }
+}
+
+/* Floating animation for auth guard illustration */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+/* ============================================
+   THEME TRANSITION — Diagonal Corner Sweep
+   Uses View Transition API (GPU-composited)
+   ============================================ */
+
+/* Opt out of default crossfade — we override with diagonal wipe */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* The OLD snapshot (what's being wiped away) stays on top temporarily */
+::view-transition-old(root) {
+  z-index: 9999;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* ─── Switching TO DARK: sweep from top-right corner ─── */
+[data-theme-transition="dark"]::view-transition-old(root) {
+  animation: diagonal-wipe-out 620ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: clip-path;
+}
+
+/* ─── Switching TO LIGHT: sweep from bottom-left corner ─── */
+[data-theme-transition="light"]::view-transition-old(root) {
+  animation: diagonal-wipe-out-reverse 620ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: clip-path;
+}
+
+/* Diagonal wipe from full → nothing (top-right origin) */
+@keyframes diagonal-wipe-out {
+  0% {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+  100% {
+    clip-path: polygon(100% 0%, 100% 0%, 100% 0%, 100% 0%);
+  }
+}
+
+/* Diagonal wipe from full → nothing (bottom-left origin) */
+@keyframes diagonal-wipe-out-reverse {
+  0% {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+  100% {
+    clip-path: polygon(0% 100%, 0% 100%, 0% 100%, 0% 100%);
+  }
+}
+
+/* Respect reduced motion — disable entirely */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   VAULT PASSWORD MANAGER — DESIGN SYSTEM
+   ============================================ */
+
+/* --- Vault CSS Variables --- */
+:root {
+  --vault-bg: #f5f0e8;
+  --vault-panel: #ffffff;
+  --vault-border: rgba(180, 140, 60, 0.18);
+  --vault-gold: #b8860b;
+  --vault-gold-light: #d4a017;
+  --vault-text: #1a1a2e;
+  --vault-muted: #6b6b70;
+  --vault-glass: rgba(0, 0, 0, 0.03);
+  --vault-glass-hover: rgba(0, 0, 0, 0.06);
+}
+
+.dark {
+  --vault-bg: #0a0a0f;
+  --vault-panel: #1a1a2e;
+  --vault-border: rgba(201, 168, 76, 0.15);
+  --vault-gold: #c9a84c;
+  --vault-gold-light: #e8c97e;
+  --vault-text: #f0ead6;
+  --vault-muted: #8b8a8e;
+  --vault-glass: rgba(255, 255, 255, 0.04);
+  --vault-glass-hover: rgba(255, 255, 255, 0.08);
+}
+
+/* --- Vault App Background Override --- */
+.vault-app {
+  background-color: var(--vault-bg) !important;
+  color: var(--vault-text);
+  font-family: var(--font-vault-body, 'DM Sans', sans-serif);
+}
+
+/* --- Vault Heading Font --- */
+.vault-heading {
+  font-family: var(--font-vault-heading, 'Cinzel', serif);
+}
+
+/* --- Glass Morphism Card --- */
+.vault-glass-card {
+  background: var(--vault-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* --- Input Styles --- */
+.vault-input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--vault-border);
+  background: var(--vault-glass);
+  color: var(--vault-text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.vault-input::placeholder {
+  color: var(--vault-muted);
+}
+.vault-input:focus {
+  border-color: var(--vault-gold);
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
+}
+
+/* --- Button Styles --- */
+.vault-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, var(--vault-gold), var(--vault-gold-light));
+  color: #0a0a0f;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+.vault-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.25);
+}
+.vault-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* --- Card Action Buttons --- */
+.vault-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  color: var(--vault-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.vault-action-btn:hover {
+  color: var(--vault-text);
+  background: var(--vault-glass-hover);
+}
+
+/* --- Icon Buttons (vault sidebar) --- */
+.vault-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--vault-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.vault-icon-btn:hover {
+  background: var(--vault-glass-hover);
+  color: var(--vault-text);
+}
+
+/* --- Content Preview clamp --- */
+.vault-content-preview {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.vault-content-preview * {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+}
+.vault-content-preview pre,
+.vault-content-preview code {
+  font-size: 0.65rem !important;
+  background: var(--vault-glass) !important;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.25rem !important;
+}
+.vault-content-preview img {
+  display: none;
+}
+
+/* --- Custom Scrollbar --- */
+.vault-app ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.vault-app ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vault-app ::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.25);
+  border-radius: 2px;
+}
+.vault-app ::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 168, 76, 0.45);
+}
+
+/* --- Range Input (password generator) --- */
+.vault-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--vault-border);
+  outline: none;
+}
+.vault-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vault-gold);
+  cursor: pointer;
+  border: 2px solid var(--vault-panel);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.vault-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vault-gold);
+  cursor: pointer;
+  border: 2px solid var(--vault-panel);
+}
+
+/* --- Checkbox (password generator) --- */
+.vault-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--vault-border);
+  background: var(--vault-glass);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.vault-checkbox:checked {
+  background: var(--vault-gold);
+  border-color: var(--vault-gold);
+}
+.vault-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  color: #0a0a0f;
+  font-weight: bold;
+}
+
+/* --- TipTap Editor Styles --- */
+.vault-editor-content {
+  color: var(--vault-text);
+  min-height: 120px;
+}
+.vault-editor-content p {
+  margin: 0.25em 0;
+}
+.vault-editor-content h1 {
+  font-size: 1.4em;
+  font-weight: 700;
+  margin: 0.5em 0 0.25em;
+  color: var(--vault-text);
+}
+.vault-editor-content h2 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 0.5em 0 0.25em;
+  color: var(--vault-text);
+}
+.vault-editor-content h3 {
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 0.4em 0 0.2em;
+  color: var(--vault-text);
+}
+.vault-editor-content ul,
+.vault-editor-content ol {
+  padding-left: 1.5em;
+  margin: 0.25em 0;
+}
+.vault-editor-content li {
+  margin: 0.1em 0;
+}
+.vault-editor-content blockquote {
+  border-left: 3px solid var(--vault-gold);
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: var(--vault-muted);
+  font-style: italic;
+}
+.vault-editor-content pre {
+  background: var(--vault-glass);
+  border: 1px solid var(--vault-border);
+  border-radius: 0.5rem;
+  padding: 0.75em;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  margin: 0.5em 0;
+}
+.vault-editor-content code {
+  background: var(--vault-glass);
+  padding: 0.1em 0.3em;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+}
+.vault-editor-content pre code {
+  background: none;
+  padding: 0;
+}
+.vault-editor-content img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 0.5em 0;
+}
+.vault-editor-content hr {
+  border: none;
+  border-top: 1px solid var(--vault-border);
+  margin: 0.75em 0;
+}
+.vault-editor-content a {
+  color: var(--vault-gold);
+  text-decoration: underline;
+}
+
+/* Editor placeholder */
+.vault-editor-content.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--vault-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+/* TipTap placeholder via the ProseMirror class */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--vault-muted);
+  pointer-events: none;
+  height: 0;
+  opacity: 0.5;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* --- Focus ring override for vault --- */
+.vault-app *:focus-visible {
+  outline: 2px solid var(--vault-gold);
+  outline-offset: 2px;
+}
+
+/* --- Detail Modal Content Sections --- */
+.vault-detail-content .vault-editor-content {
+  max-height: none;
+  -webkit-line-clamp: unset;
+}
+
+/* --- Interactive Code Block --- */
+.vault-code-block {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+/* Card hover ripple effect */
+.vault-card-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--vault-gold) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0);
+  animation: vault-ripple 0.6s ease-out forwards;
+}
+
+@keyframes vault-ripple {
+  0% {
+    opacity: 0.15;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4);
+  }
+}
+
+/* Smooth tab underline animation */
+.vault-tab-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--vault-gold);
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modal scroll shadow hint */
+.vault-scroll-shadow {
+  position: relative;
+}
+.vault-scroll-shadow::before,
+.vault-scroll-shadow::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 24px;
+  pointer-events: none;
+  z-index: 2;
+}
+.vault-scroll-shadow::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--vault-panel), transparent);
+}
+.vault-scroll-shadow::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--vault-panel), transparent);
 }

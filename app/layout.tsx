@@ -1,44 +1,37 @@
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+import { TRPCProvider } from "@/trpc/client";
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Fredoka, Cinzel, DM_Sans } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const siteTitle = "Animate | UI";
-const siteDescription = "Reactjs animation with framer motion";
 
 export const metadata: Metadata = {
-  title: siteTitle,
-  description: siteDescription,
-  openGraph: {},
+  title: "Vault — Password Manager",
+  description:
+    "Vault — A premium password manager and secure note-keeping app.",
   icons: {
-    icon: [
-      {
-        rel: "icon",
-        media: "(prefers-color-scheme: light)",
-        url: "/images/double-check.png",
-        href: "/images/double-check.png",
-      },
-      {
-        rel: "icon",
-        media: "(prefers-color-scheme: dark)",
-        url: "/images/double-check.png",
-        href: "/images/double-check.png",
-      },
-    ],
+    icon: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 };
+
+const googleFonts = Fredoka({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-vault-heading",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-vault-body",
+});
 
 export default function RootLayout({
   children,
@@ -46,12 +39,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider afterSignOutUrl="/">
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${googleFonts.className} ${cinzel.variable} ${dmSans.variable} app-bg`}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+          >
+            <TRPCProvider>
+              <Toaster />
+              {children}
+            </TRPCProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
+

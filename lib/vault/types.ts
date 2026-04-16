@@ -1,0 +1,57 @@
+export type ItemType = 'password' | 'note' | 'clipboard';
+export type Visibility = 'public' | 'private';
+
+export interface Tag {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export interface VaultItem {
+  id: string;
+  type: ItemType;
+  visibility: Visibility;
+  title: string;
+  content: string;       // rich HTML string from TipTap
+  plainText: string;     // stripped version for search/preview
+  tags: Tag[];
+  createdAt: string;
+  updatedAt: string;
+  // Password-specific:
+  siteUrl?: string;
+  username?: string;
+  password?: string;
+  // Image support:
+  images?: string[];     // base64 data URLs
+}
+
+export interface AuthState {
+  isLoggedIn: boolean;
+  username: string | null;
+}
+
+export interface AppState {
+  auth: AuthState;
+  items: VaultItem[];
+  searchQuery: string;
+  toast: { message: string; visible: boolean };
+  activeTab: 'dashboard' | 'vault' | 'create';
+  activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
+  drawerOpen: boolean;
+  sidebarOpen: boolean;
+}
+
+export type AppAction =
+  | { type: 'LOGIN'; username: string }
+  | { type: 'LOGOUT' }
+  | { type: 'ADD_ITEM'; item: VaultItem; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
+  | { type: 'UPDATE_ITEM'; item: VaultItem; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
+  | { type: 'DELETE_ITEM'; id: string; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
+  | { type: 'TOGGLE_VISIBILITY'; id: string; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
+  | { type: 'SET_SEARCH'; query: string }
+  | { type: 'SHOW_TOAST'; message: string }
+  | { type: 'HIDE_TOAST' }
+  | { type: 'SET_TAB'; tab: AppState['activeTab'] }
+  | { type: 'SET_DRAWER'; open: boolean }
+  | { type: 'SET_CATEGORY'; category: AppState['activeCategory'] }
+  | { type: 'SET_SIDEBAR'; open: boolean };
