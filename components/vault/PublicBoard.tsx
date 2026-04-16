@@ -105,15 +105,11 @@ export default function PublicBoard() {
       )}
 
       {/* Detail Modal */}
-      <AnimatePresence>
-        {selectedItem && (
-          <ItemDetailModal
-            item={selectedItem.item}
-            initialTab={selectedItem.initialTab}
-            onClose={() => setSelectedItem(null)}
-          />
-        )}
-      </AnimatePresence>
+      <ItemDetailModal
+        item={selectedItem ? selectedItem.item : null}
+        initialTab={selectedItem ? selectedItem.initialTab : undefined}
+        onClose={() => setSelectedItem(null)}
+      />
     </div>
   );
 }

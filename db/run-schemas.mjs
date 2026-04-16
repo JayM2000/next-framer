@@ -31,6 +31,7 @@ const schemaFiles = [
   "users_migrations_001.sql",
   "users_migrations_002.sql",
   "users_migrations_003.sql",
+  "users_migrations_004.sql",
   "vault_items.sql",
   "vault_tags.sql",
   "vault_item_tags.sql",
