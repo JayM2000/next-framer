@@ -1,0 +1,137 @@
+# User Profile Badge & Hover Card on Public Board
+
+Add a **profile visibility toggle** in user settings, replace the static "You" badge with the user's name (when toggled on), and show a rich **animated hover card** with user stats and an activity graph to any visitor hovering over the author badge on public items.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Settings location:** The sidebar currently has a "Settings" button that shows a toast "Settings coming soon!". This plan will create a proper **Settings modal/panel** triggered from that button. Is this the right location, or do you want settings elsewhere (e.g., a separate page)?
+
+> [!WARNING]
+> **Database migration required.** A new `user_settings` table and a `getUserProfile` public API will be added. You'll need to run the migration script after approval.
+
+## Open Questions
+
+1. **User avatar:** Clerk provides user profile images. Should we pull the avatar from Clerk for the hover card, or use a generated initial/icon?
+2. **Name source:** Should the display name come from the existing `users.name` column (DB) or from Clerk's profile data?
+
+---
+
+## Proposed Changes
+
+### Database Layer
+
+#### [NEW] [users_migrations_005.sql](file:///c:/Users/misal/OneDrive/Documents/next-framer/db/schemas/users_migrations_005.sql)
+
+Add a `user_settings` table to store per-user preferences:
+
+```sql
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    show_profile_on_public BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+- `show_profile_on_public` — the toggle. When `TRUE`, the user's name replaces "You" on their public cards, and hovering reveals the profile card to anyone.
+
+#### [MODIFY] [run-schemas.mjs](file:///c:/Users/misal/OneDrive/Documents/next-framer/db/run-schemas.mjs)
+Add `"users_migrations_005.sql"` to the `schemaFiles` array.
+
+---
+
+### Backend API (tRPC)
+
+#### [MODIFY] [vault.ts](file:///c:/Users/misal/OneDrive/Documents/next-framer/trpc/routers/vault.ts)
+
+Add three new procedures to `vaultRouter`:
+
+1. **`getUserSettings`** (`protectedProcedure.query`) — Returns the current user's settings (creates a default row if missing).
+
+2. **`updateUserSettings`** (`protectedProcedure.mutation`) — Updates the `show_profile_on_public` toggle.
+
+3. **`getUserProfile`** (`baseProcedure.query`) — Public endpoint. Input: `{ userId: number }`. Returns profile info **only if** the user has `show_profile_on_public = TRUE`. Returns:
+   - `name`, `memberSince` (from `users` table)
+   - `totalPublicItems`, `passwordCount`, `noteCount`, `clipboardCount` (aggregated from `vault_items`)
+   - `totalTags` (from `vault_tags`)
+   - `activityData` — last 12 weeks of item creation counts (for the animated graph)
+
+Also modify **`getPublicItems`** to join user data: for each item with a non-null `user_id`, include `ownerName` and `ownerShowProfile` so the frontend knows whether to show the name and enable the hover card.
+
+---
+
+### Frontend — Store & Types
+
+#### [MODIFY] [types.ts](file:///c:/Users/misal/OneDrive/Documents/next-framer/lib/vault/types.ts)
+
+Add to `VaultItem`:
+```ts
+ownerName?: string;        // author's display name (from DB join)
+ownerShowProfile?: boolean; // whether the owner enabled public profile
+```
+
+#### [MODIFY] [store.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/lib/vault/store.tsx)
+
+Expose `userSettings` (the toggle state) via context so the Settings UI and ItemCard can read it. Add `trpc.vault.getUserSettings.useQuery()` and the update mutation.
+
+---
+
+### Frontend — New Components
+
+#### [NEW] [UserProfileHoverCard.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/UserProfileHoverCard.tsx)
+
+A hover-triggered popup (using `onMouseEnter`/`onMouseLeave` with a delay) that renders:
+
+- **Header:** User avatar (initial-based), name, "Member since" date
+- **Stats grid:** Total items, passwords, notes, snippets, tags — each with an animated count-up
+- **Activity graph:** A 12-week bar chart (built with pure SVG, no library) showing weekly item creation. Bars animate in with staggered framer-motion. Accent-colored bars with a gradient fill.
+- **Glassmorphism styling** consistent with the vault design system
+- Uses `trpc.vault.getUserProfile.useQuery()` — fetches lazily only when the popover opens
+
+#### [NEW] [SettingsModal.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/SettingsModal.tsx)
+
+A modal triggered from the sidebar Settings button:
+
+- **Profile Visibility section:**
+  - Toggle switch for "Show profile on public items"
+  - Description text explaining what it does
+  - Preview of how the badge will look (name vs "You")
+- Styled with the vault design system (glass card, gold accents)
+- Uses framer-motion entrance/exit animations
+
+---
+
+### Frontend — Modified Components
+
+#### [MODIFY] [ItemCard.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/ItemCard.tsx)
+
+Update lines 95–105 (the author badge area):
+
+- **If `isOwner` and user's toggle is ON:** Show the user's name instead of "You"
+- **If `isOwner` and toggle is OFF:** Show "You" (current behavior)
+- **If not owner and `item.ownerShowProfile` is true:** Show the owner's name and wrap it in `UserProfileHoverCard`
+- **If not owner and `item.ownerShowProfile` is false:** Show "Anonymous" (current behavior)
+
+#### [MODIFY] [MainSidebar.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/MainSidebar.tsx)
+
+Replace the Settings button's toast action with opening `SettingsModal`.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+```bash
+# Run the migration
+node db/run-schemas.mjs
+
+# Verify the dev server compiles without errors
+yarn dev
+```
+
+### Manual Verification
+1. Open Settings modal from sidebar → toggle "Show profile on public items" ON
+2. Create a public item → verify the badge shows your name instead of "You"
+3. Open an incognito window → hover over your name badge on a public item → verify the animated profile card appears with stats and activity graph
+4. Toggle the setting OFF → verify badge goes back to "You" and hover card no longer appears for other users

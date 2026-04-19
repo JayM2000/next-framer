@@ -56,11 +56,13 @@ export function performDiagonalThemeSwitch(
       backgroundColor: sweepColor,
       opacity: '1',
       willChange: 'clip-path, opacity',
-      // Start from a zero-size triangle at the appropriate corner
+      // Start from a zero-size quad at the appropriate corner
+      // MUST use 4 vertices to match the target polygon (CSS can only
+      // interpolate clip-path when vertex counts are equal).
       clipPath:
         nextTheme === 'dark'
-          ? 'polygon(100% 0%, 100% 0%, 100% 0%)'   // top-right
-          : 'polygon(0% 100%, 0% 100%, 0% 100%)',   // bottom-left
+          ? 'polygon(100% 0%, 100% 0%, 100% 0%, 100% 0%)'   // top-right
+          : 'polygon(0% 100%, 0% 100%, 0% 100%, 0% 100%)',   // bottom-left
     });
 
     document.body.appendChild(overlay);

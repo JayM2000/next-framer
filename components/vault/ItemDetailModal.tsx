@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
@@ -8,7 +8,7 @@ import {
   X, Copy, Trash2, Lock, Globe, KeyRound, FileText, Clipboard,
   Eye, EyeOff, ExternalLink, Calendar, Clock, Tag as TagIcon,
   Download, Check, Hash, Type, AlignLeft, Code2,
-  Sparkles, Pencil,
+  Sparkles, Pencil, RotateCcw,
 } from 'lucide-react';
 
 const typeConfig = {
@@ -104,7 +104,8 @@ function InteractiveCodeBlock({ code, onCopyLine }: { code: string; onCopyLine: 
   );
 }
 
-export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
+const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
+  console.log(initialTab, 'initialTab');
   const [cachedItem, setCachedItem] = useState<VaultItem | null>(item);
   useEffect(() => {
     if (item) setCachedItem(item);
@@ -118,6 +119,13 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
+
+  // Reset tab when modal opens with a new item
+  useEffect(() => {
+    if (item) {
+      setActiveTab(initialTab);
+    }
+  }, [item, initialTab]);
 
   /* ─── Stats ─── */
   const stats = useMemo(() => {
@@ -159,6 +167,9 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
     copyToClipboard(text, `${field} copied!`);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+    if (displayItem.visibility === 'public') {
+      dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+    }
   };
 
   const handleDelete = () => {
@@ -490,7 +501,12 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
                           </div>
                           <InteractiveCodeBlock
                             code={block}
-                            onCopyLine={(line) => copyToClipboard(line, 'Line copied!')}
+                            onCopyLine={(line) => {
+                              copyToClipboard(line, 'Line copied!');
+                              if (displayItem.visibility === 'public') {
+                                dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+                              }
+                            }}
                           />
                         </motion.div>
                       ))}
@@ -520,7 +536,12 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
                   </div>
                   <InteractiveCodeBlock
                     code={displayItem.plainText}
-                    onCopyLine={(line) => copyToClipboard(line, 'Line copied!')}
+                    onCopyLine={(line) => {
+                      copyToClipboard(line, 'Line copied!');
+                      if (displayItem.visibility === 'public') {
+                        dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+                      }
+                    }}
                   />
                 </motion.div>
               )}
@@ -666,7 +687,7 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
           className="flex shrink-0 items-center justify-between border-t border-[var(--vault-border)] px-5 py-3 sm:px-6"
         >
           <div className="flex gap-2 flex-wrap">
-            {isOwner && onEdit && (
+            {isOwner && onEdit && !displayItem.isDeleted && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 whileHover={{ scale: 1.02 }}
@@ -680,7 +701,7 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
                 Edit
               </motion.button>
             )}
-            {isOwner && (
+            {isOwner && !displayItem.isDeleted && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleToggleVisibility}
@@ -711,7 +732,45 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
             </motion.button>
           </div>
 
-          {isOwner && (
+          {isOwner && displayItem.isDeleted && (
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  dispatch({ type: 'RECOVER_ITEM', id: displayItem.id });
+                  showToast('Item recovered from trash');
+                  onClose();
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Recover
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (!confirmDelete) {
+                    setConfirmDelete(true);
+                    setTimeout(() => setConfirmDelete(false), 3000);
+                    return;
+                  }
+                  dispatch({ type: 'DELETE_ITEM_PERMANENT', id: displayItem.id });
+                  showToast('Item permanently deleted');
+                  onClose();
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                  confirmDelete
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'border border-[var(--vault-border)] text-[var(--vault-muted)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                }`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {confirmDelete ? 'Confirm Permanent Delete' : 'Delete Permanently'}
+              </motion.button>
+            </div>
+          )}
+
+          {isOwner && !displayItem.isDeleted && (
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleDelete}
@@ -722,7 +781,7 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
               }`}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              {confirmDelete ? 'Confirm Delete' : 'Delete'}
+              {confirmDelete ? 'Confirm Delete' : 'Move to Trash'}
             </motion.button>
           )}
         </motion.div>
@@ -730,4 +789,6 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
       )}
     </AnimatePresence>
   );
-}
+});
+
+export default ItemDetailModal;

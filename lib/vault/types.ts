@@ -16,14 +16,19 @@ export interface VaultItem {
   content: string;       // rich HTML string from TipTap
   plainText: string;     // stripped version for search/preview
   tags: Tag[];
+  copyCount?: number;
   createdAt: string;
   updatedAt: string;
+  isDeleted?: boolean; // For trash feature
   // Password-specific:
   siteUrl?: string;
   username?: string;
   password?: string;
   // Image support:
   images?: string[];     // base64 data URLs
+  // Owner info (populated on public items):
+  ownerName?: string;         // author display name (from DB join)
+  ownerShowProfile?: boolean; // whether owner enabled public profile visibility
 }
 
 export interface AuthState {
@@ -45,10 +50,13 @@ export interface AppState {
 export type AppAction =
   | { type: 'LOGIN'; username: string }
   | { type: 'LOGOUT' }
-  | { type: 'ADD_ITEM'; item: VaultItem; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
-  | { type: 'UPDATE_ITEM'; item: VaultItem; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
-  | { type: 'DELETE_ITEM'; id: string; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
-  | { type: 'TOGGLE_VISIBILITY'; id: string; onSuccess?: () => void; onError?: (error: any) => void; onSettled?: () => void }
+  | { type: 'ADD_ITEM'; item: VaultItem; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'UPDATE_ITEM'; item: VaultItem; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'DELETE_ITEM'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'RECOVER_ITEM'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'DELETE_ITEM_PERMANENT'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'TOGGLE_VISIBILITY'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'INCREMENT_COPY_COUNT'; id: string }
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'SHOW_TOAST'; message: string }
   | { type: 'HIDE_TOAST' }

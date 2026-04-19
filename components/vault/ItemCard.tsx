@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe } from 'lucide-react';
+import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, Flame } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
+import UserProfileHoverCard from './UserProfileHoverCard';
 
 const typeIcons = {
   password: KeyRound,
@@ -32,8 +33,8 @@ interface Props {
   onEdit?: () => void;
 }
 
-export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
-  const { dispatch, copyToClipboard, currentDbUserId } = useVault();
+const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
+  const { dispatch, copyToClipboard, currentDbUserId, userSettings } = useVault();
   const [copied, setCopied] = useState(false);
   const Icon = typeIcons[item.type];
   const isClipboard = item.type === 'clipboard';
@@ -44,6 +45,10 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
     copyToClipboard(item.plainText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    // Track copy count for public items (used for popularity sorting)
+    if (item.visibility === 'public') {
+      dispatch({ type: 'INCREMENT_COPY_COUNT', id: item.id });
+    }
   };
 
   return (
@@ -92,17 +97,40 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
           <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--vault-muted)]">
             <span>{new Date(item.createdAt).toLocaleDateString()}</span>
             <span className="h-0.5 w-0.5 rounded-full bg-[var(--vault-muted)] opacity-50" />
-            {isOwner ? (
-              <span className="inline-flex items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm">
-                <User className="h-2.5 w-2.5" />
-                You
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-sm bg-slate-500/15 px-1.5 py-0.5 font-medium text-slate-400">
-                <Globe className="h-2.5 w-2.5" />
-                Anonymous
-              </span>
-            )}
+            {(() => {
+              const showProfileEnabled = userSettings?.showProfileOnPublic ?? false;
+
+              if (isOwner) {
+                // Owner sees their own badge
+                return (
+                  <span className="inline-flex items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm">
+                    <User className="h-2.5 w-2.5" />
+                    {showProfileEnabled && item.ownerName ? item.ownerName : 'You'}
+                  </span>
+                );
+              }
+
+              // Not the owner
+              if (item.ownerShowProfile && item.ownerName && item.userId) {
+                // Owner has opted in — show name with hover card
+                return (
+                  <UserProfileHoverCard userId={item.userId} ownerName={item.ownerName}>
+                    <span className="inline-flex cursor-pointer items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm transition-colors hover:bg-[var(--vault-gold)]/25">
+                      <User className="h-2.5 w-2.5" />
+                      {item.ownerName}
+                    </span>
+                  </UserProfileHoverCard>
+                );
+              }
+
+              // Anonymous / owner didn't opt in
+              return (
+                <span className="inline-flex items-center gap-1 rounded-sm bg-slate-500/15 px-1.5 py-0.5 font-medium text-slate-400">
+                  <Globe className="h-2.5 w-2.5" />
+                  Anonymous
+                </span>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -170,10 +198,17 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
             <span>Stats</span>
           </button>
         )}
+        {/* Copy count badge — pushed right */}
+        {(item.copyCount ?? 0) > 0 && (
+          <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-medium text-orange-400" title={`Copied ${item.copyCount} times`}>
+            <Flame className="h-2.5 w-2.5" />
+            {item.copyCount}
+          </span>
+        )}
         {isOwner && (
           <button
             onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
-            className="vault-action-btn ml-auto"
+            className={`vault-action-btn ${(item.copyCount ?? 0) > 0 ? '' : 'ml-auto'}`}
             title="Make Private"
           >
             <Lock className="h-3.5 w-3.5" />
@@ -183,4 +218,6 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
       </div>
     </motion.div>
   );
-}
+});
+
+export default ItemCard;

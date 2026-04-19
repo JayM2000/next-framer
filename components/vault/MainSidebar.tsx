@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useVault } from '@/lib/vault/store';
 import { 
   Plus, 
@@ -14,9 +15,11 @@ import {
 } from 'lucide-react';
 import { AppState } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import SettingsModal from './SettingsModal';
 
 export default function MainSidebar() {
   const { state, dispatch } = useVault();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleCategoryChange = (category: AppState['activeCategory']) => {
     dispatch({ type: 'SET_CATEGORY', category });
@@ -37,7 +40,7 @@ export default function MainSidebar() {
   ] as const;
 
   const systemItems = [
-    { label: 'Settings', icon: Settings, category: null, action: () => dispatch({ type: 'SHOW_TOAST', message: 'Settings coming soon!' }) },
+    { label: 'Settings', icon: Settings, category: null, action: () => setSettingsOpen(true) },
     { label: 'Trash', icon: Trash2, category: 'trash', action: undefined },
   ];
 
@@ -203,6 +206,7 @@ export default function MainSidebar() {
       </div>
 
     </aside>
+    <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </TooltipProvider>
   );
 }
