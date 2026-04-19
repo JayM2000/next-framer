@@ -2,23 +2,23 @@ name: CI and Deploy
 
 on:
   push:
-    branches: [master] # Only run this workflow on merge/push to main
+    branches: [master] # Only run this workflow on merge/push to master
 
 jobs:
   # This job is optional — see note below
   check-merge-source:
-    name: Prevent direct merge to main (DEV only)
+    name: Prevent direct merge to master (DEV only)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Fail if main commit not from dev
+      - name: Fail if master commit not from dev
         run: |
           echo "Checking merge source..."
           # Get the branch that triggered the push
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          # When committing directly to main (not merge), abort
-          if [[ "${{ github.head_ref }}" == "main" ]]; then
-            echo "Push directly to main detected."
+          # When committing directly to master (not merge), abort
+          if [[ "${{ github.head_ref }}" == "master" ]]; then
+            echo "Push directly to master detected."
             echo "Use pull requests from dev branch only."
             exit 1
           fi
