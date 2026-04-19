@@ -1,12 +1,12 @@
 # Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-19)
 
 ## Corpus Check
-- 81 files · ~65,093 words
+- 81 files · ~66,218 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 187 nodes · 127 edges · 66 communities detected
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
+- 186 nodes · 125 edges · 68 communities detected
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -76,11 +76,13 @@
 - [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `query()` - 7 edges
 2. `POST()` - 5 edges
-3. `useVault()` - 5 edges
+3. `useVault()` - 4 edges
 4. `handleKeyDown()` - 3 edges
 5. `withTransaction()` - 3 edges
 6. `getQueryClient()` - 3 edges
@@ -90,26 +92,26 @@
 10. `useSidebar()` - 2 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
 - `GET()` --calls--> `query()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\app\api\vehicle-parts\list\route.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
-- `Dashboard()` --calls--> `useVault()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\components\vault\Dashboard.tsx → C:\Users\misal\OneDrive\Documents\next-framer\lib\vault\store.tsx
-- `ItemCard()` --calls--> `useVault()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\components\vault\ItemCard.tsx → C:\Users\misal\OneDrive\Documents\next-framer\lib\vault\store.tsx
-- `Toast()` --calls--> `useVault()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\components\vault\Toast.tsx → C:\Users\misal\OneDrive\Documents\next-framer\lib\vault\store.tsx
-- `VaultItemRow()` --calls--> `useVault()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\components\vault\VaultItemRow.tsx → C:\Users\misal\OneDrive\Documents\next-framer\lib\vault\store.tsx
+- `query()` --calls--> `migrate()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\migrate-users.mjs
+- `query()` --calls--> `runSchemas()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\run-schemas.mjs
+- `DashboardContent()` --calls--> `useSidebar()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\app\(dashboard)\layout.tsx → C:\Users\misal\OneDrive\Documents\next-framer\components\sidebar-context.tsx
 
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.12
-Nodes (7): query(), withTransaction(), migrate(), GET(), POST(), runSchemas(), upsertTagsForItem()
+Cohesion: 0.16
+Nodes (6): query(), withTransaction(), migrate(), GET(), POST(), runSchemas()
 
 ### Community 1 - "Community 1"
-Cohesion: 0.13
-Nodes (7): Dashboard(), ItemCard(), useSocket(), useVault(), VaultProvider(), Toast(), VaultItemRow()
+Cohesion: 0.15
+Nodes (6): Dashboard(), useSocket(), useVault(), VaultProvider(), Toast(), VaultItemRow()
 
 ### Community 2 - "Community 2"
 Cohesion: 0.22
@@ -140,40 +142,40 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 9 - "Community 9"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.4
+Nodes (1): upsertTagsForItem()
 
 ### Community 10 - "Community 10"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 11 - "Community 11"
-Cohesion: 0.83
-Nodes (3): addTag(), handleKeyDown(), removeTag()
-
-### Community 12 - "Community 12"
 Cohesion: 0.5
 Nodes (0): 
 
+### Community 12 - "Community 12"
+Cohesion: 0.83
+Nodes (3): addTag(), handleKeyDown(), removeTag()
+
 ### Community 13 - "Community 13"
-Cohesion: 0.67
-Nodes (1): Page()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 14 - "Community 14"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (1): Page()
 
 ### Community 15 - "Community 15"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 16 - "Community 16"
-Cohesion: 1.0
-Nodes (2): formatDate(), formatTime()
-
-### Community 17 - "Community 17"
 Cohesion: 0.67
 Nodes (0): 
+
+### Community 17 - "Community 17"
+Cohesion: 1.0
+Nodes (2): formatDate(), formatTime()
 
 ### Community 18 - "Community 18"
 Cohesion: 0.67
@@ -367,6 +369,14 @@ Nodes (0):
 Cohesion: 1.0
 Nodes (0): 
 
+### Community 66 - "Community 66"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 67 - "Community 67"
+Cohesion: 1.0
+Nodes (0): 
+
 ## Knowledge Gaps
 - **Thin community `Community 20`** (2 nodes): `layout.tsx`, `RootLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -400,77 +410,81 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 35`** (2 nodes): `handleSubmit()`, `AuthScreen.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (2 nodes): `MainSidebar.tsx`, `handleCategoryChange()`
+- **Thin community `Community 36`** (2 nodes): `ItemCard.tsx`, `handleQuickCopy()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 37`** (2 nodes): `QuickAdd.tsx`, `handleSave()`
+- **Thin community `Community 37`** (2 nodes): `MainSidebar.tsx`, `handleCategoryChange()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 38`** (2 nodes): `RichEditor.tsx`, `RichEditor()`
+- **Thin community `Community 38`** (2 nodes): `PublicBoard.tsx`, `SectionDivider()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 39`** (2 nodes): `ThemeToggle.tsx`, `ThemeToggle()`
+- **Thin community `Community 39`** (2 nodes): `QuickAdd.tsx`, `handleSave()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 40`** (2 nodes): `VaultSidebar.tsx`, `handleEditFromDetail()`
+- **Thin community `Community 40`** (2 nodes): `RichEditor.tsx`, `RichEditor()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (2 nodes): `main.tsx`, `ErrorFallback()`
+- **Thin community `Community 41`** (2 nodes): `ThemeToggle.tsx`, `ThemeToggle()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 42`** (2 nodes): `theme-transition.ts`, `performDiagonalThemeSwitch()`
+- **Thin community `Community 42`** (2 nodes): `VaultSidebar.tsx`, `handleEditFromDetail()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (2 nodes): `utils.ts`, `cn()`
+- **Thin community `Community 43`** (2 nodes): `main.tsx`, `ErrorFallback()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (2 nodes): `checkAutocorrect()`, `autocorrect.ts`
+- **Thin community `Community 44`** (2 nodes): `theme-transition.ts`, `performDiagonalThemeSwitch()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (1 nodes): `eslint.config.mjs`
+- **Thin community `Community 45`** (2 nodes): `utils.ts`, `cn()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (1 nodes): `middleware.ts`
+- **Thin community `Community 46`** (2 nodes): `checkAutocorrect()`, `autocorrect.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (1 nodes): `next-env.d.ts`
+- **Thin community `Community 47`** (1 nodes): `eslint.config.mjs`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (1 nodes): `next.config.ts`
+- **Thin community `Community 48`** (1 nodes): `middleware.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 49`** (1 nodes): `postcss.config.mjs`
+- **Thin community `Community 49`** (1 nodes): `next-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (1 nodes): `server.js`
+- **Thin community `Community 50`** (1 nodes): `next.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (1 nodes): `page.tsx`
+- **Thin community `Community 51`** (1 nodes): `postcss.config.mjs`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 52`** (1 nodes): `header.tsx`
+- **Thin community `Community 52`** (1 nodes): `server.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 53`** (1 nodes): `sidebar.tsx`
+- **Thin community `Community 53`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 54`** (1 nodes): `checkbox.tsx`
+- **Thin community `Community 54`** (1 nodes): `header.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 55`** (1 nodes): `sonner.tsx`
+- **Thin community `Community 55`** (1 nodes): `sidebar.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 56`** (1 nodes): `Header.tsx`
+- **Thin community `Community 56`** (1 nodes): `checkbox.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 57`** (1 nodes): `MobileNav.tsx`
+- **Thin community `Community 57`** (1 nodes): `sonner.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 58`** (1 nodes): `MobileQuickAdd.tsx`
+- **Thin community `Community 58`** (1 nodes): `Header.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 59`** (1 nodes): `SearchBar.tsx`
+- **Thin community `Community 59`** (1 nodes): `MobileNav.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (1 nodes): `VaultApp.tsx`
+- **Thin community `Community 60`** (1 nodes): `MobileQuickAdd.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (1 nodes): `types.ts`
+- **Thin community `Community 61`** (1 nodes): `SearchBar.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (1 nodes): `init.ts`
+- **Thin community `Community 62`** (1 nodes): `VaultApp.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (1 nodes): `server.tsx`
+- **Thin community `Community 63`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (1 nodes): `vehiclesPart.ts`
+- **Thin community `Community 64`** (1 nodes): `init.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (1 nodes): `_app.ts`
+- **Thin community `Community 65`** (1 nodes): `server.tsx`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 66`** (1 nodes): `vehiclesPart.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 67`** (1 nodes): `_app.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
+- **Why does `query()` connect `Community 0` to `Community 9`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `upsertTagsForItem()` connect `Community 9` to `Community 0`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `query()` (e.g. with `POST()` and `GET()`) actually correct?**
   _`query()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `POST()` (e.g. with `query()` and `withTransaction()`) actually correct?**
   _`POST()` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 4 inferred relationships involving `useVault()` (e.g. with `Dashboard()` and `ItemCard()`) actually correct?**
-  _`useVault()` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+- **Are the 3 inferred relationships involving `useVault()` (e.g. with `Dashboard()` and `Toast()`) actually correct?**
+  _`useVault()` has 3 INFERRED edges - model-reasoned connections that need verification._
