@@ -8,6 +8,7 @@
     "dev:webhook": "ngrok http --url=properly-cool-sawfly.ngrok-free.app 3000",
     "build": "next build",
     "start": "concurrently --kill-others-on-fail \"NODE_ENV=production node server.js\" \"yarn dev:webhook\"",
+    "start:local": "node server.js",
     "lint": "next lint"
   },
   "dependencies": {

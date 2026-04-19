@@ -26,7 +26,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
 
     // Connect to the same origin where the Next.js/Socket server is running
-    const socketInstance = new (ClientIO as any)();
+    const socketInstance = ClientIO();
 
     socketInstance.on('connect', () => {
       setIsConnected(true);

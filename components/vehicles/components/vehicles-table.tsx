@@ -721,7 +721,6 @@ export const VehiclesTable = ({
       </div>
 
       {/* ── Table ────────────────────────────────────── */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         ref={tableContainerRef}
         className="flex-1 min-h-0 overflow-auto rounded-xl border border-white/20 bg-white/15 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"

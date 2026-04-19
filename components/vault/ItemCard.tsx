@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe } from 'lucide-react';
+import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, Flame } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import UserProfileHoverCard from './UserProfileHoverCard';
@@ -33,7 +33,7 @@ interface Props {
   onEdit?: () => void;
 }
 
-export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
+const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
   const { dispatch, copyToClipboard, currentDbUserId, userSettings } = useVault();
   const [copied, setCopied] = useState(false);
   const Icon = typeIcons[item.type];
@@ -45,6 +45,10 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
     copyToClipboard(item.plainText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    // Track copy count for public items (used for popularity sorting)
+    if (item.visibility === 'public') {
+      dispatch({ type: 'INCREMENT_COPY_COUNT', id: item.id });
+    }
   };
 
   return (
@@ -194,10 +198,17 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
             <span>Stats</span>
           </button>
         )}
+        {/* Copy count badge — pushed right */}
+        {(item.copyCount ?? 0) > 0 && (
+          <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-medium text-orange-400" title={`Copied ${item.copyCount} times`}>
+            <Flame className="h-2.5 w-2.5" />
+            {item.copyCount}
+          </span>
+        )}
         {isOwner && (
           <button
             onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
-            className="vault-action-btn ml-auto"
+            className={`vault-action-btn ${(item.copyCount ?? 0) > 0 ? '' : 'ml-auto'}`}
             title="Make Private"
           >
             <Lock className="h-3.5 w-3.5" />
@@ -207,4 +218,6 @@ export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }:
       </div>
     </motion.div>
   );
-}
+});
+
+export default ItemCard;

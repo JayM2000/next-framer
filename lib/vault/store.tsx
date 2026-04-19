@@ -172,6 +172,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const incrementCopyCountMutation = trpc.vault.incrementCopyCount.useMutation({
+    onSuccess: () => {
+      utils.vault.getPublicItems.invalidate();
+    },
+  });
+
   // ── Merge items: user's private items + public items (deduped) ──
   const items: VaultItem[] = useMemo(() => {
     const seen = new Set<string>();
@@ -301,6 +307,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           });
           break;
 
+        case 'INCREMENT_COPY_COUNT':
+          incrementCopyCountMutation.mutate({ id: action.id });
+          break;
+
         // ── UI-only actions → local reducer ──
         case 'SET_SEARCH':
           uiDispatch(action);
@@ -330,7 +340,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           break;
       }
     },
-    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation, recoverMutation, deletePermanentMutation]
+    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation, recoverMutation, deletePermanentMutation, incrementCopyCountMutation]
   );
 
   // ── Compose the full AppState shape ──
@@ -381,8 +391,35 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     [updateSettingsMutation]
   );
 
+  const contextValue = useMemo(
+    () => ({
+      state,
+      dispatch,
+      showToast,
+      copyToClipboard,
+      isLoading,
+      isCreating,
+      isRefetching,
+      currentDbUserId,
+      userSettings,
+      updateUserSettings,
+    }),
+    [
+      state,
+      dispatch,
+      showToast,
+      copyToClipboard,
+      isLoading,
+      isCreating,
+      isRefetching,
+      currentDbUserId,
+      userSettings,
+      updateUserSettings,
+    ]
+  );
+
   return (
-    <VaultContext.Provider value={{ state, dispatch, showToast, copyToClipboard, isLoading, isCreating, isRefetching, currentDbUserId, userSettings, updateUserSettings }}>
+    <VaultContext.Provider value={contextValue}>
       {children}
     </VaultContext.Provider>
   );

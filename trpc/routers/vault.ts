@@ -51,6 +51,7 @@ interface VaultItemRow {
   site_username: string | null;
   encrypted_password: string | null;
   images_json: string[] | null;
+  copy_count: number;
   is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
@@ -108,6 +109,7 @@ function formatItem(
       label: t.label,
       color: t.color,
     })),
+    copyCount: row.copy_count ?? 0,
     isDeleted: row.is_deleted,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -266,7 +268,7 @@ export const vaultRouter = createTRPCRouter({
        LEFT JOIN users u         ON u.id = vi.user_id
        LEFT JOIN user_settings us ON us.user_id = vi.user_id
        WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
-       ORDER BY vi.created_at DESC`
+       ORDER BY vi.copy_count DESC, vi.created_at DESC`
     );
 
     const itemIds = items.map((i) => i.id);
@@ -566,6 +568,19 @@ export const vaultRouter = createTRPCRouter({
         result[0],
         tagRows.map((r) => ({ id: r.tag_id, label: r.label, color: r.color }))
       );
+    }),
+
+  // ── Increment copy count (PUBLIC — no auth required) ────
+  incrementCopyCount: baseProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ input }) => {
+      await query(
+        `UPDATE vault_items SET copy_count = copy_count + 1
+         WHERE id = $1 AND visibility = 'public' AND is_deleted = FALSE`,
+        [input.id]
+      );
+      (global as any).vaultEventEmitter?.emit('vault:update');
+      return { success: true };
     }),
 
   // ══════════════════════════════════════════════════════════

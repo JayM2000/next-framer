@@ -34,7 +34,7 @@ export default function VaultSidebar() {
       (i.username && i.username.toLowerCase().includes(q)) ||
       (i.siteUrl && i.siteUrl.toLowerCase().includes(q))
     );
-  }, [state.items, state.searchQuery]);
+  }, [state.items, state.searchQuery, state.activeCategory]);
 
   const handleEditFromDetail = (item: VaultItem) => {
     setSelectedItem(null);

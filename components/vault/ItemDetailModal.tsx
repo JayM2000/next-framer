@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
@@ -104,7 +104,8 @@ function InteractiveCodeBlock({ code, onCopyLine }: { code: string; onCopyLine: 
   );
 }
 
-export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
+const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
+  console.log(initialTab, 'initialTab');
   const [cachedItem, setCachedItem] = useState<VaultItem | null>(item);
   useEffect(() => {
     if (item) setCachedItem(item);
@@ -118,6 +119,13 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
+
+  // Reset tab when modal opens with a new item
+  useEffect(() => {
+    if (item) {
+      setActiveTab(initialTab);
+    }
+  }, [item, initialTab]);
 
   /* ─── Stats ─── */
   const stats = useMemo(() => {
@@ -159,6 +167,9 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
     copyToClipboard(text, `${field} copied!`);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+    if (displayItem.visibility === 'public') {
+      dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+    }
   };
 
   const handleDelete = () => {
@@ -490,7 +501,12 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
                           </div>
                           <InteractiveCodeBlock
                             code={block}
-                            onCopyLine={(line) => copyToClipboard(line, 'Line copied!')}
+                            onCopyLine={(line) => {
+                              copyToClipboard(line, 'Line copied!');
+                              if (displayItem.visibility === 'public') {
+                                dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+                              }
+                            }}
                           />
                         </motion.div>
                       ))}
@@ -520,7 +536,12 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
                   </div>
                   <InteractiveCodeBlock
                     code={displayItem.plainText}
-                    onCopyLine={(line) => copyToClipboard(line, 'Line copied!')}
+                    onCopyLine={(line) => {
+                      copyToClipboard(line, 'Line copied!');
+                      if (displayItem.visibility === 'public') {
+                        dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+                      }
+                    }}
                   />
                 </motion.div>
               )}
@@ -768,4 +789,6 @@ export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'r
       )}
     </AnimatePresence>
   );
-}
+});
+
+export default ItemDetailModal;

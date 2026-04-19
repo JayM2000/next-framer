@@ -49,21 +49,30 @@
       "norm_label": "postcss.config.mjs"
     },
     {
+      "label": "server.js",
+      "file_type": "code",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\server.js",
+      "source_location": "L1",
+      "id": "c_users_misal_onedrive_documents_next_framer_server_js",
+      "community": 50,
+      "norm_label": "server.js"
+    },
+    {
       "label": "layout.tsx",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\layout.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_layout_tsx",
-      "community": 19,
+      "community": 20,
       "norm_label": "layout.tsx"
     },
     {
       "label": "RootLayout()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\layout.tsx",
-      "source_location": "L36",
+      "source_location": "L37",
       "id": "layout_rootlayout",
-      "community": 19,
+      "community": 20,
       "norm_label": "rootlayout()"
     },
     {
@@ -72,7 +81,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\page.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_page_tsx",
-      "community": 20,
+      "community": 21,
       "norm_label": "page.tsx"
     },
     {
@@ -81,7 +90,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\page.tsx",
       "source_location": "L18",
       "id": "page_home",
-      "community": 20,
+      "community": 21,
       "norm_label": "home()"
     },
     {
@@ -90,7 +99,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(auth)\\layout.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_auth_layout_tsx",
-      "community": 21,
+      "community": 22,
       "norm_label": "layout.tsx"
     },
     {
@@ -99,7 +108,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(auth)\\layout.tsx",
       "source_location": "L7",
       "id": "layout_layout",
-      "community": 21,
+      "community": 22,
       "norm_label": "layout()"
     },
     {
@@ -162,7 +171,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(dashboard)\\analytics\\page.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_dashboard_analytics_page_tsx",
-      "community": 50,
+      "community": 51,
       "norm_label": "page.tsx"
     },
     {
@@ -171,7 +180,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(dashboard)\\dashboard\\page.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_dashboard_dashboard_page_tsx",
-      "community": 22,
+      "community": 23,
       "norm_label": "page.tsx"
     },
     {
@@ -180,7 +189,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(dashboard)\\dashboard\\page.tsx",
       "source_location": "L38",
       "id": "page_dashboardpage",
-      "community": 22,
+      "community": 23,
       "norm_label": "dashboardpage()"
     },
     {
@@ -189,7 +198,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(dashboard)\\vehicles\\page.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_dashboard_vehicles_page_tsx",
-      "community": 23,
+      "community": 24,
       "norm_label": "page.tsx"
     },
     {
@@ -198,7 +207,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\(dashboard)\\vehicles\\page.tsx",
       "source_location": "L5",
       "id": "page_vehiclespage",
-      "community": 23,
+      "community": 24,
       "norm_label": "vehiclespage()"
     },
     {
@@ -207,7 +216,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\api\\trpc\\[trpc]\\route.ts",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_app_api_trpc_trpc_route_ts",
-      "community": 24,
+      "community": 25,
       "norm_label": "route.ts"
     },
     {
@@ -216,7 +225,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\api\\trpc\\[trpc]\\route.ts",
       "source_location": "L5",
       "id": "route_handler",
-      "community": 24,
+      "community": 25,
       "norm_label": "handler()"
     },
     {
@@ -279,7 +288,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\AnimationFm.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_animationfm_tsx",
-      "community": 25,
+      "community": 26,
       "norm_label": "animationfm.tsx"
     },
     {
@@ -288,7 +297,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\AnimationFm.tsx",
       "source_location": "L6",
       "id": "animationfm_animationfm",
-      "community": 25,
+      "community": 26,
       "norm_label": "animationfm()"
     },
     {
@@ -297,7 +306,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\auth-guard.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_auth_guard_tsx",
-      "community": 26,
+      "community": 27,
       "norm_label": "auth-guard.tsx"
     },
     {
@@ -306,7 +315,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\auth-guard.tsx",
       "source_location": "L9",
       "id": "auth_guard_authguard",
-      "community": 26,
+      "community": 27,
       "norm_label": "authguard()"
     },
     {
@@ -315,7 +324,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\header.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_header_tsx",
-      "community": 51,
+      "community": 52,
       "norm_label": "header.tsx"
     },
     {
@@ -351,7 +360,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\sidebar.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_sidebar_tsx",
-      "community": 52,
+      "community": 53,
       "norm_label": "sidebar.tsx"
     },
     {
@@ -360,7 +369,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\theme-provider.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_theme_provider_tsx",
-      "community": 27,
+      "community": 28,
       "norm_label": "theme-provider.tsx"
     },
     {
@@ -369,8 +378,35 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\theme-provider.tsx",
       "source_location": "L6",
       "id": "theme_provider_themeprovider",
-      "community": 27,
+      "community": 28,
       "norm_label": "themeprovider()"
+    },
+    {
+      "label": "SocketProvider.tsx",
+      "file_type": "code",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\providers\\SocketProvider.tsx",
+      "source_location": "L1",
+      "id": "c_users_misal_onedrive_documents_next_framer_components_providers_socketprovider_tsx",
+      "community": 1,
+      "norm_label": "socketprovider.tsx"
+    },
+    {
+      "label": "useSocket()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\providers\\SocketProvider.tsx",
+      "source_location": "L16",
+      "id": "socketprovider_usesocket",
+      "community": 1,
+      "norm_label": "usesocket()"
+    },
+    {
+      "label": "SocketProvider()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\providers\\SocketProvider.tsx",
+      "source_location": "L20",
+      "id": "socketprovider_socketprovider",
+      "community": 1,
+      "norm_label": "socketprovider()"
     },
     {
       "label": "badge.tsx",
@@ -378,7 +414,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\badge.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_badge_tsx",
-      "community": 28,
+      "community": 29,
       "norm_label": "badge.tsx"
     },
     {
@@ -387,7 +423,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\badge.tsx",
       "source_location": "L30",
       "id": "badge_badge",
-      "community": 28,
+      "community": 29,
       "norm_label": "badge()"
     },
     {
@@ -396,7 +432,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\button.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_button_tsx",
-      "community": 29,
+      "community": 30,
       "norm_label": "button.tsx"
     },
     {
@@ -405,7 +441,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\button.tsx",
       "source_location": "L59",
       "id": "button_cn",
-      "community": 29,
+      "community": 30,
       "norm_label": "cn()"
     },
     {
@@ -414,7 +450,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\checkbox.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_checkbox_tsx",
-      "community": 53,
+      "community": 54,
       "norm_label": "checkbox.tsx"
     },
     {
@@ -504,7 +540,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\input.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_input_tsx",
-      "community": 30,
+      "community": 31,
       "norm_label": "input.tsx"
     },
     {
@@ -513,7 +549,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\input.tsx",
       "source_location": "L5",
       "id": "input_input",
-      "community": 30,
+      "community": 31,
       "norm_label": "input()"
     },
     {
@@ -522,7 +558,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\label.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_label_tsx",
-      "community": 31,
+      "community": 32,
       "norm_label": "label.tsx"
     },
     {
@@ -531,7 +567,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\label.tsx",
       "source_location": "L8",
       "id": "label_label",
-      "community": 31,
+      "community": 32,
       "norm_label": "label()"
     },
     {
@@ -585,7 +621,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\sonner.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_sonner_tsx",
-      "community": 54,
+      "community": 55,
       "norm_label": "sonner.tsx"
     },
     {
@@ -639,7 +675,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\tabs.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_tabs_tsx",
-      "community": 32,
+      "community": 33,
       "norm_label": "tabs.tsx"
     },
     {
@@ -648,7 +684,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\tabs.tsx",
       "source_location": "L65",
       "id": "tabs_cn",
-      "community": 32,
+      "community": 33,
       "norm_label": "cn()"
     },
     {
@@ -657,7 +693,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\tooltip.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_ui_tooltip_tsx",
-      "community": 33,
+      "community": 34,
       "norm_label": "tooltip.tsx"
     },
     {
@@ -666,7 +702,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\ui\\tooltip.tsx",
       "source_location": "L33",
       "id": "tooltip_tooltipcontent",
-      "community": 33,
+      "community": 34,
       "norm_label": "tooltipcontent()"
     },
     {
@@ -675,7 +711,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\AuthScreen.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_authscreen_tsx",
-      "community": 34,
+      "community": 35,
       "norm_label": "authscreen.tsx"
     },
     {
@@ -684,7 +720,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\AuthScreen.tsx",
       "source_location": "L16",
       "id": "authscreen_handlesubmit",
-      "community": 34,
+      "community": 35,
       "norm_label": "handlesubmit()"
     },
     {
@@ -837,7 +873,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\Header.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_header_tsx",
-      "community": 55,
+      "community": 56,
       "norm_label": "header.tsx"
     },
     {
@@ -945,7 +981,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\MainSidebar.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_mainsidebar_tsx",
-      "community": 35,
+      "community": 36,
       "norm_label": "mainsidebar.tsx"
     },
     {
@@ -954,7 +990,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\MainSidebar.tsx",
       "source_location": "L24",
       "id": "mainsidebar_handlecategorychange",
-      "community": 35,
+      "community": 36,
       "norm_label": "handlecategorychange()"
     },
     {
@@ -963,7 +999,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\MobileNav.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_mobilenav_tsx",
-      "community": 56,
+      "community": 57,
       "norm_label": "mobilenav.tsx"
     },
     {
@@ -972,7 +1008,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\MobileQuickAdd.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_mobilequickadd_tsx",
-      "community": 57,
+      "community": 58,
       "norm_label": "mobilequickadd.tsx"
     },
     {
@@ -1008,7 +1044,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\QuickAdd.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_quickadd_tsx",
-      "community": 36,
+      "community": 37,
       "norm_label": "quickadd.tsx"
     },
     {
@@ -1017,7 +1053,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\QuickAdd.tsx",
       "source_location": "L17",
       "id": "quickadd_handlesave",
-      "community": 36,
+      "community": 37,
       "norm_label": "handlesave()"
     },
     {
@@ -1026,7 +1062,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\RichEditor.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_richeditor_tsx",
-      "community": 37,
+      "community": 38,
       "norm_label": "richeditor.tsx"
     },
     {
@@ -1035,7 +1071,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\RichEditor.tsx",
       "source_location": "L21",
       "id": "richeditor_richeditor",
-      "community": 37,
+      "community": 38,
       "norm_label": "richeditor()"
     },
     {
@@ -1044,7 +1080,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\SearchBar.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_searchbar_tsx",
-      "community": 58,
+      "community": 59,
       "norm_label": "searchbar.tsx"
     },
     {
@@ -1053,17 +1089,26 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\SettingsModal.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_settingsmodal_tsx",
-      "community": 38,
+      "community": 18,
       "norm_label": "settingsmodal.tsx"
     },
     {
       "label": "handleToggle()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\SettingsModal.tsx",
-      "source_location": "L17",
+      "source_location": "L24",
       "id": "settingsmodal_handletoggle",
-      "community": 38,
+      "community": 18,
       "norm_label": "handletoggle()"
+    },
+    {
+      "label": "handleApply()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\SettingsModal.tsx",
+      "source_location": "L28",
+      "id": "settingsmodal_handleapply",
+      "community": 18,
+      "norm_label": "handleapply()"
     },
     {
       "label": "TagInput.tsx",
@@ -1147,10 +1192,19 @@
       "norm_label": "userprofilehovercard.tsx"
     },
     {
-      "label": "AnimatedCount()",
+      "label": "catmullRom2bezier()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L16",
+      "id": "userprofilehovercard_catmullrom2bezier",
+      "community": 3,
+      "norm_label": "catmullrom2bezier()"
+    },
+    {
+      "label": "AnimatedCount()",
+      "file_type": "code",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
+      "source_location": "L35",
       "id": "userprofilehovercard_animatedcount",
       "community": 3,
       "norm_label": "animatedcount()"
@@ -1159,7 +1213,7 @@
       "label": "handleTriggerEnter()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L73",
+      "source_location": "L92",
       "id": "userprofilehovercard_handletriggerenter",
       "community": 3,
       "norm_label": "handletriggerenter()"
@@ -1168,7 +1222,7 @@
       "label": "handleTriggerLeave()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L81",
+      "source_location": "L100",
       "id": "userprofilehovercard_handletriggerleave",
       "community": 3,
       "norm_label": "handletriggerleave()"
@@ -1177,7 +1231,7 @@
       "label": "handleCardEnter()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L86",
+      "source_location": "L105",
       "id": "userprofilehovercard_handlecardenter",
       "community": 3,
       "norm_label": "handlecardenter()"
@@ -1186,7 +1240,7 @@
       "label": "handleCardLeave()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L90",
+      "source_location": "L109",
       "id": "userprofilehovercard_handlecardleave",
       "community": 3,
       "norm_label": "handlecardleave()"
@@ -1195,7 +1249,7 @@
       "label": "handleClick()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L94",
+      "source_location": "L113",
       "id": "userprofilehovercard_handleclick",
       "community": 3,
       "norm_label": "handleclick()"
@@ -1206,7 +1260,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\VaultApp.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_vaultapp_tsx",
-      "community": 59,
+      "community": 60,
       "norm_label": "vaultapp.tsx"
     },
     {
@@ -1240,7 +1294,7 @@
       "label": "handleEditFromDetail()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\VaultSidebar.tsx",
-      "source_location": "L32",
+      "source_location": "L39",
       "id": "vaultsidebar_handleeditfromdetail",
       "community": 40,
       "norm_label": "handleeditfromdetail()"
@@ -1287,7 +1341,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vehicles\\components\\vehicles-table.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vehicles_components_vehicles_table_tsx",
-      "community": 18,
+      "community": 19,
       "norm_label": "vehicles-table.tsx"
     },
     {
@@ -1296,7 +1350,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vehicles\\components\\vehicles-table.tsx",
       "source_location": "L547",
       "id": "vehicles_table_renderapipagebuttons",
-      "community": 18,
+      "community": 19,
       "norm_label": "renderapipagebuttons()"
     },
     {
@@ -1305,7 +1359,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vehicles\\components\\vehicles-table.tsx",
       "source_location": "L605",
       "id": "vehicles_table_handlesearchchange",
-      "community": 18,
+      "community": 19,
       "norm_label": "handlesearchchange()"
     },
     {
@@ -1465,7 +1519,7 @@
       "label": "uiReducer()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L44",
+      "source_location": "L46",
       "id": "store_uireducer",
       "community": 1,
       "norm_label": "uireducer()"
@@ -1474,7 +1528,7 @@
       "label": "VaultProvider()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L84",
+      "source_location": "L86",
       "id": "store_vaultprovider",
       "community": 1,
       "norm_label": "vaultprovider()"
@@ -1483,7 +1537,7 @@
       "label": "useVault()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L339",
+      "source_location": "L391",
       "id": "store_usevault",
       "community": 1,
       "norm_label": "usevault()"
@@ -1494,7 +1548,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\types.ts",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_lib_vault_types_ts",
-      "community": 60,
+      "community": 61,
       "norm_label": "types.ts"
     },
     {
@@ -1539,7 +1593,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\init.ts",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_trpc_init_ts",
-      "community": 61,
+      "community": 62,
       "norm_label": "init.ts"
     },
     {
@@ -1566,7 +1620,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\server.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_trpc_server_tsx",
-      "community": 62,
+      "community": 63,
       "norm_label": "server.tsx"
     },
     {
@@ -1591,7 +1645,7 @@
       "label": "resolveUserId()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vault.ts",
-      "source_location": "L118",
+      "source_location": "L119",
       "id": "vault_resolveuserid",
       "community": 0,
       "norm_label": "resolveuserid()"
@@ -1600,7 +1654,7 @@
       "label": "optionalUserId()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vault.ts",
-      "source_location": "L134",
+      "source_location": "L135",
       "id": "vault_optionaluserid",
       "community": 0,
       "norm_label": "optionaluserid()"
@@ -1609,7 +1663,7 @@
       "label": "upsertTagsForItem()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vault.ts",
-      "source_location": "L148",
+      "source_location": "L149",
       "id": "vault_upserttagsforitem",
       "community": 0,
       "norm_label": "upserttagsforitem()"
@@ -1620,7 +1674,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vehiclesPart.ts",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_trpc_routers_vehiclespart_ts",
-      "community": 63,
+      "community": 64,
       "norm_label": "vehiclespart.ts"
     },
     {
@@ -1629,7 +1683,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\_app.ts",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_trpc_routers_app_ts",
-      "community": 64,
+      "community": 65,
       "norm_label": "_app.ts"
     }
   ],
@@ -1638,7 +1692,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\app\\layout.tsx",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_app_layout_tsx",
       "_tgt": "layout_rootlayout",
@@ -1909,6 +1963,42 @@
       "source": "c_users_misal_onedrive_documents_next_framer_components_theme_provider_tsx",
       "target": "theme_provider_themeprovider",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\providers\\SocketProvider.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_src": "c_users_misal_onedrive_documents_next_framer_components_providers_socketprovider_tsx",
+      "_tgt": "socketprovider_usesocket",
+      "source": "c_users_misal_onedrive_documents_next_framer_components_providers_socketprovider_tsx",
+      "target": "socketprovider_usesocket",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\providers\\SocketProvider.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "_src": "c_users_misal_onedrive_documents_next_framer_components_providers_socketprovider_tsx",
+      "_tgt": "socketprovider_socketprovider",
+      "source": "c_users_misal_onedrive_documents_next_framer_components_providers_socketprovider_tsx",
+      "target": "socketprovider_socketprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
+      "source_location": "L112",
+      "weight": 1.0,
+      "_src": "socketprovider_usesocket",
+      "_tgt": "store_vaultprovider",
+      "source": "socketprovider_usesocket",
+      "target": "store_vaultprovider"
     },
     {
       "relation": "contains",
@@ -2514,12 +2604,24 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\SettingsModal.tsx",
-      "source_location": "L17",
+      "source_location": "L24",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_settingsmodal_tsx",
       "_tgt": "settingsmodal_handletoggle",
       "source": "c_users_misal_onedrive_documents_next_framer_components_vault_settingsmodal_tsx",
       "target": "settingsmodal_handletoggle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\SettingsModal.tsx",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_settingsmodal_tsx",
+      "_tgt": "settingsmodal_handleapply",
+      "source": "c_users_misal_onedrive_documents_next_framer_components_vault_settingsmodal_tsx",
+      "target": "settingsmodal_handleapply",
       "confidence_score": 1.0
     },
     {
@@ -2625,6 +2727,18 @@
       "source_location": "L16",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
+      "_tgt": "userprofilehovercard_catmullrom2bezier",
+      "source": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
+      "target": "userprofilehovercard_catmullrom2bezier",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "_tgt": "userprofilehovercard_animatedcount",
       "source": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "target": "userprofilehovercard_animatedcount",
@@ -2634,7 +2748,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L73",
+      "source_location": "L92",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "_tgt": "userprofilehovercard_handletriggerenter",
@@ -2646,7 +2760,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L81",
+      "source_location": "L100",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "_tgt": "userprofilehovercard_handletriggerleave",
@@ -2658,7 +2772,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L86",
+      "source_location": "L105",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "_tgt": "userprofilehovercard_handlecardenter",
@@ -2670,7 +2784,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L90",
+      "source_location": "L109",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "_tgt": "userprofilehovercard_handlecardleave",
@@ -2682,7 +2796,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
-      "source_location": "L94",
+      "source_location": "L113",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
       "_tgt": "userprofilehovercard_handleclick",
@@ -2718,7 +2832,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\VaultSidebar.tsx",
-      "source_location": "L32",
+      "source_location": "L39",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_vaultsidebar_tsx",
       "_tgt": "vaultsidebar_handleeditfromdetail",
@@ -2946,7 +3060,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_lib_vault_store_tsx",
       "_tgt": "store_uireducer",
@@ -2958,7 +3072,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L84",
+      "source_location": "L86",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_lib_vault_store_tsx",
       "_tgt": "store_vaultprovider",
@@ -2970,7 +3084,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L339",
+      "source_location": "L391",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_lib_vault_store_tsx",
       "_tgt": "store_usevault",
@@ -3066,7 +3180,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vault.ts",
-      "source_location": "L118",
+      "source_location": "L119",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_trpc_routers_vault_ts",
       "_tgt": "vault_resolveuserid",
@@ -3078,7 +3192,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vault.ts",
-      "source_location": "L134",
+      "source_location": "L135",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_trpc_routers_vault_ts",
       "_tgt": "vault_optionaluserid",
@@ -3090,7 +3204,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\trpc\\routers\\vault.ts",
-      "source_location": "L148",
+      "source_location": "L149",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_trpc_routers_vault_ts",
       "_tgt": "vault_upserttagsforitem",
