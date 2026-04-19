@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TRPCProvider } from "@/trpc/client";
+import { SocketProvider } from "@/components/providers/SocketProvider";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Fredoka, Cinzel, DM_Sans } from "next/font/google";
@@ -48,8 +49,10 @@ export default function RootLayout({
             enableSystem
           >
             <TRPCProvider>
-              <Toaster />
-              {children}
+              <SocketProvider>
+                <Toaster />
+                {children}
+              </SocketProvider>
             </TRPCProvider>
           </ThemeProvider>
         </body>

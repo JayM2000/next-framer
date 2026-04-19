@@ -15,7 +15,7 @@ export default function PublicBoard() {
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
 
   const publicItems = useMemo(() => {
-    let items = state.items.filter(i => i.visibility === 'public');
+    let items = state.items.filter(i => i.visibility === 'public' && !i.isDeleted);
     
     if (state.activeCategory === 'passwords') items = items.filter(i => i.type === 'password');
     if (state.activeCategory === 'notes') items = items.filter(i => i.type === 'note');

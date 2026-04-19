@@ -36,6 +36,7 @@ const schemaFiles = [
   "vault_tags.sql",
   "vault_item_tags.sql",
   "vault_migrations_001.sql",
+  "users_migrations_005.sql",
 ];
 
 async function runSchemas() {

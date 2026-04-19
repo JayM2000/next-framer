@@ -5,12 +5,14 @@ import React, {
   useContext,
   useReducer,
   useCallback,
+  useEffect,
   useRef,
   useMemo,
   type ReactNode,
 } from 'react';
 import { trpc } from '@/trpc/client';
 import type { AppState, AppAction, VaultItem } from './types';
+import { useSocket } from '@/components/providers/SocketProvider';
 
 // ── UI-only state (not persisted) ─────────────────────────
 
@@ -73,6 +75,8 @@ interface VaultContextType {
   isCreating: boolean;
   isRefetching: boolean;
   currentDbUserId: number | null;
+  userSettings: { showProfileOnPublic: boolean } | undefined;
+  updateUserSettings: (showProfileOnPublic: boolean) => void;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -101,8 +105,28 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     isLoading: isLoadingPublic,
     isFetching: isFetchingPublic,
   } = trpc.vault.getPublicItems.useQuery(undefined, {
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Also refetch when they switch tabs
   });
+
+  // ── Socket.IO Live Updates ──
+  const { socket, isConnected } = useSocket();
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleVaultUpdate = () => {
+      // Invalidate queries so they refetch immediately
+      utils.vault.getPublicItems.invalidate();
+      utils.vault.getItems.invalidate();
+      utils.vault.getUserSettings.invalidate();
+    };
+
+    socket.on('vault:update', handleVaultUpdate);
+
+    return () => {
+      socket.off('vault:update', handleVaultUpdate);
+    };
+  }, [socket, isConnected, utils]);
 
   // ── tRPC mutations ──
   // createItem is a public API — works both logged-in and anonymous
@@ -128,6 +152,20 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   });
 
   const toggleVisibilityMutation = trpc.vault.toggleVisibility.useMutation({
+    onSuccess: () => {
+      utils.vault.getItems.invalidate();
+      utils.vault.getPublicItems.invalidate();
+    },
+  });
+
+  const recoverMutation = trpc.vault.recoverItem.useMutation({
+    onSuccess: () => {
+      utils.vault.getItems.invalidate();
+      utils.vault.getPublicItems.invalidate();
+    },
+  });
+
+  const deletePermanentMutation = trpc.vault.deleteItemPermanent.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
       utils.vault.getPublicItems.invalidate();
@@ -247,6 +285,22 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           });
           break;
 
+        case 'RECOVER_ITEM':
+          recoverMutation.mutate({ id: action.id }, {
+            onSuccess: () => action.onSuccess?.(),
+            onError: (error) => action.onError?.(error),
+            onSettled: () => action.onSettled?.(),
+          });
+          break;
+
+        case 'DELETE_ITEM_PERMANENT':
+          deletePermanentMutation.mutate({ id: action.id }, {
+            onSuccess: () => action.onSuccess?.(),
+            onError: (error) => action.onError?.(error),
+            onSettled: () => action.onSettled?.(),
+          });
+          break;
+
         // ── UI-only actions → local reducer ──
         case 'SET_SEARCH':
           uiDispatch(action);
@@ -276,7 +330,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           break;
       }
     },
-    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation]
+    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation, recoverMutation, deletePermanentMutation]
   );
 
   // ── Compose the full AppState shape ──
@@ -307,8 +361,28 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     return null;
   }, [userItems]);
 
+  // ── User settings (profile visibility toggle) ──
+  const { data: userSettings } = trpc.vault.getUserSettings.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const updateSettingsMutation = trpc.vault.updateUserSettings.useMutation({
+    onSuccess: () => {
+      utils.vault.getUserSettings.invalidate();
+      utils.vault.getPublicItems.invalidate();
+    },
+  });
+
+  const updateUserSettings = useCallback(
+    (showProfileOnPublic: boolean) => {
+      updateSettingsMutation.mutate({ showProfileOnPublic });
+    },
+    [updateSettingsMutation]
+  );
+
   return (
-    <VaultContext.Provider value={{ state, dispatch, showToast, copyToClipboard, isLoading, isCreating, isRefetching, currentDbUserId }}>
+    <VaultContext.Provider value={{ state, dispatch, showToast, copyToClipboard, isLoading, isCreating, isRefetching, currentDbUserId, userSettings, updateUserSettings }}>
       {children}
     </VaultContext.Provider>
   );

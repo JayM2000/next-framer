@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import VaultItemRow from './VaultItemRow';
 import EditItemModal from './EditItemModal';
+import ItemDetailModal from './ItemDetailModal';
 import { Lock } from 'lucide-react';
 import { SignIn, useUser } from '@clerk/nextjs';
 import type { VaultItem } from '@/lib/vault/types';
@@ -13,9 +14,17 @@ export default function VaultSidebar() {
   const { state } = useVault();
   const { isLoaded, isSignedIn } = useUser();
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
 
-  const privateItems = useMemo(() => {
-    const items = state.items.filter(i => i.visibility === 'private');
+  const displayedItems = useMemo(() => {
+    let items = state.items;
+    
+    if (state.activeCategory === 'trash') {
+      items = items.filter(i => i.isDeleted);
+    } else {
+      items = items.filter(i => i.visibility === 'private' && !i.isDeleted);
+    }
+
     if (!state.searchQuery) return items;
     const q = state.searchQuery.toLowerCase();
     return items.filter(i =>
@@ -26,6 +35,12 @@ export default function VaultSidebar() {
       (i.siteUrl && i.siteUrl.toLowerCase().includes(q))
     );
   }, [state.items, state.searchQuery]);
+
+  const handleEditFromDetail = (item: VaultItem) => {
+    setSelectedItem(null);
+    // Small delay to let the detail modal exit animation complete
+    setTimeout(() => setEditingItem(item), 200);
+  };
 
   if (!isLoaded) {
     return null;
@@ -53,33 +68,45 @@ export default function VaultSidebar() {
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--vault-text)]">
-            <Lock className="h-3.5 w-3.5 text-[var(--vault-gold)]" />
-            My Vault
+            {state.activeCategory === 'trash' ? (
+              <>Trash</>
+            ) : (
+              <><Lock className="h-3.5 w-3.5 text-[var(--vault-gold)]" /> My Vault</>
+            )}
             <span className="text-xs font-normal text-[var(--vault-muted)]">
-              {privateItems.length} items
+              {displayedItems.length} items
             </span>
           </h2>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <AnimatePresence mode="popLayout">
-            {privateItems.map((item, i) => (
+            {displayedItems.map((item, i) => (
               <VaultItemRow
                 key={item.id}
                 item={item}
                 index={i}
+                onClick={() => setSelectedItem({ item })}
                 onEdit={(item) => setEditingItem(item)}
               />
             ))}
           </AnimatePresence>
 
-          {privateItems.length === 0 && (
+          {displayedItems.length === 0 && (
             <div className="py-8 text-center text-xs text-[var(--vault-muted)]">
-              {state.searchQuery ? 'No matching vault items' : 'Your vault is empty'}
+              {state.searchQuery ? 'No matching items' : (state.activeCategory === 'trash' ? 'Trash is empty' : 'Your vault is empty')}
             </div>
           )}
         </div>
       </motion.div>
+
+      {/* Detail Modal — same modal as public board */}
+      <ItemDetailModal
+        item={selectedItem ? selectedItem.item : null}
+        initialTab={selectedItem ? selectedItem.initialTab : undefined}
+        onClose={() => setSelectedItem(null)}
+        onEdit={handleEditFromDetail}
+      />
 
       {/* Edit Modal */}
       <EditItemModal

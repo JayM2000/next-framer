@@ -69,6 +69,22 @@ interface ItemTagRow {
   color: string;
 }
 
+interface UserSettingsRow {
+  user_id: number;
+  show_profile_on_public: boolean;
+}
+
+// Extended row returned by the public items query (joins user + settings)
+interface PublicItemRow extends VaultItemRow {
+  owner_name: string | null;
+  owner_show_profile: boolean | null;
+}
+
+interface ActivityRow {
+  week_start: string;
+  count: string; // bigint comes back as string
+}
+
 // ── Helper: format DB row → client shape ──────────────────
 
 function formatItem(
@@ -92,6 +108,7 @@ function formatItem(
       label: t.label,
       color: t.color,
     })),
+    isDeleted: row.is_deleted,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -208,7 +225,7 @@ export const vaultRouter = createTRPCRouter({
 
     const items = await query<VaultItemRow>(
       `SELECT * FROM vault_items
-       WHERE user_id = $1 AND is_deleted = FALSE
+       WHERE user_id = $1
        ORDER BY created_at DESC`,
       [userId]
     );
@@ -240,10 +257,16 @@ export const vaultRouter = createTRPCRouter({
 
   // ── Get public items (no auth required) ─────────────────
   getPublicItems: baseProcedure.query(async () => {
-    const items = await query<VaultItemRow>(
-      `SELECT * FROM vault_items
-       WHERE visibility = 'public' AND is_deleted = FALSE
-       ORDER BY created_at DESC`
+    // Join owner name + profile visibility setting
+    const items = await query<PublicItemRow>(
+      `SELECT vi.*,
+              u.name       AS owner_name,
+              COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
+       FROM vault_items vi
+       LEFT JOIN users u         ON u.id = vi.user_id
+       LEFT JOIN user_settings us ON us.user_id = vi.user_id
+       WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+       ORDER BY vi.created_at DESC`
     );
 
     const itemIds = items.map((i) => i.id);
@@ -266,14 +289,18 @@ export const vaultRouter = createTRPCRouter({
       tagsByItem.set(row.item_id, arr);
     }
 
-    // Strip sensitive fields from public items
+    // Strip sensitive fields from public items and attach owner info
     return items.map((item) => {
       const formatted = formatItem(item, tagsByItem.get(item.id) ?? []);
       // Never leak passwords on public route
       if (formatted.type === "password") {
         formatted.password = undefined;
       }
-      return formatted;
+      return {
+        ...formatted,
+        ownerName: item.owner_name ?? undefined,
+        ownerShowProfile: item.owner_show_profile ?? false,
+      };
     });
   }),
 
@@ -323,6 +350,7 @@ export const vaultRouter = createTRPCRouter({
         return formatItem(item, tags);
       });
 
+      (global as any).vaultEventEmitter?.emit('vault:update');
       return result;
     }),
 
@@ -420,6 +448,7 @@ export const vaultRouter = createTRPCRouter({
         return formatItem(item, tags);
       });
 
+      (global as any).vaultEventEmitter?.emit('vault:update');
       return result;
     }),
 
@@ -444,6 +473,60 @@ export const vaultRouter = createTRPCRouter({
         });
       }
 
+      (global as any).vaultEventEmitter?.emit('vault:update');
+      return { success: true, id: input.id };
+    }),
+
+  // ── Recover an item from trash (PRIVATE — login required)
+  recoverItem: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = await resolveUserId(ctx.clerkUserId!);
+
+      const result = await query(
+        `UPDATE vault_items
+         SET is_deleted = FALSE, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1 AND user_id = $2 AND is_deleted = TRUE
+         RETURNING id`,
+        [input.id, userId]
+      );
+
+      if (!result.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Item not found in trash",
+        });
+      }
+
+      (global as any).vaultEventEmitter?.emit('vault:update');
+      return { success: true, id: input.id };
+    }),
+
+  // ── Permanently delete an item (PRIVATE — login required)
+  deleteItemPermanent: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = await resolveUserId(ctx.clerkUserId!);
+
+      // Also clean up tags (handled by ON DELETE CASCADE if set up, but let's be safe)
+      await withTransaction(async (client) => {
+        await client.query(`DELETE FROM vault_item_tags WHERE item_id = $1`, [input.id]);
+        const result = await client.query(
+          `DELETE FROM vault_items
+           WHERE id = $1 AND user_id = $2 AND is_deleted = TRUE
+           RETURNING id`,
+          [input.id, userId]
+        );
+
+        if (!result.rowCount) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Item not found in trash",
+          });
+        }
+      });
+
+      (global as any).vaultEventEmitter?.emit('vault:update');
       return { success: true, id: input.id };
     }),
 
@@ -478,10 +561,151 @@ export const vaultRouter = createTRPCRouter({
         [input.id]
       );
 
+      (global as any).vaultEventEmitter?.emit('vault:update');
       return formatItem(
         result[0],
         tagRows.map((r) => ({ id: r.tag_id, label: r.label, color: r.color }))
       );
+    }),
+
+  // ══════════════════════════════════════════════════════════
+  //  USER SETTINGS
+  // ══════════════════════════════════════════════════════════
+
+  // ── Get current user's settings ─────────────────────────
+  getUserSettings: protectedProcedure.query(async ({ ctx }) => {
+    const userId = await resolveUserId(ctx.clerkUserId!);
+
+    // Upsert: ensure row exists with defaults
+    const rows = await query<UserSettingsRow>(
+      `INSERT INTO user_settings (user_id)
+       VALUES ($1)
+       ON CONFLICT (user_id) DO NOTHING
+       RETURNING *`,
+      [userId]
+    );
+
+    if (rows.length > 0) return { showProfileOnPublic: rows[0].show_profile_on_public };
+
+    // Row already existed — fetch it
+    const existing = await query<UserSettingsRow>(
+      `SELECT * FROM user_settings WHERE user_id = $1`,
+      [userId]
+    );
+
+    return {
+      showProfileOnPublic: existing[0]?.show_profile_on_public ?? false,
+    };
+  }),
+
+  // ── Update user settings ────────────────────────────────
+  updateUserSettings: protectedProcedure
+    .input(
+      z.object({
+        showProfileOnPublic: z.boolean(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = await resolveUserId(ctx.clerkUserId!);
+
+      await query(
+        `INSERT INTO user_settings (user_id, show_profile_on_public, updated_at)
+         VALUES ($1, $2, CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id)
+         DO UPDATE SET show_profile_on_public = $2, updated_at = CURRENT_TIMESTAMP`,
+        [userId, input.showProfileOnPublic]
+      );
+
+      (global as any).vaultEventEmitter?.emit('vault:update');
+      return { success: true, showProfileOnPublic: input.showProfileOnPublic };
+    }),
+
+  // ── Get a user's public profile (no auth — anyone can hover) ──
+  getUserProfile: baseProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ input }) => {
+      // Only return data if the user opted in
+      const settings = await query<UserSettingsRow>(
+        `SELECT * FROM user_settings WHERE user_id = $1`,
+        [input.userId]
+      );
+
+      if (!settings.length || !settings[0].show_profile_on_public) {
+        return null; // user has not opted in
+      }
+
+      // User info
+      const userRows = await query<{ id: number; name: string; created_at: Date }>(
+        `SELECT id, name, created_at FROM users WHERE id = $1`,
+        [input.userId]
+      );
+
+      if (!userRows.length) return null;
+      const user = userRows[0];
+
+      // Item counts by type
+      const countRows = await query<{ type: string; count: string }>(
+        `SELECT type, COUNT(*)::text AS count
+         FROM vault_items
+         WHERE user_id = $1 AND visibility = 'public' AND is_deleted = FALSE
+         GROUP BY type`,
+        [input.userId]
+      );
+
+      const counts: Record<string, number> = {};
+      let totalPublicItems = 0;
+      for (const row of countRows) {
+        counts[row.type] = parseInt(row.count);
+        totalPublicItems += parseInt(row.count);
+      }
+
+      // Tag count
+      const tagCountRows = await query<{ count: string }>(
+        `SELECT COUNT(DISTINCT vt.id)::text AS count
+         FROM vault_tags vt
+         WHERE vt.user_id = $1`,
+        [input.userId]
+      );
+      const totalTags = parseInt(tagCountRows[0]?.count ?? "0");
+
+      // Activity data: items created per week for the last 12 weeks
+      const activityRows = await query<ActivityRow>(
+        `SELECT date_trunc('week', created_at)::text AS week_start,
+                COUNT(*)::text AS count
+         FROM vault_items
+         WHERE user_id = $1
+           AND is_deleted = FALSE
+           AND created_at >= NOW() - INTERVAL '12 weeks'
+         GROUP BY date_trunc('week', created_at)
+         ORDER BY week_start ASC`,
+        [input.userId]
+      );
+
+      // Fill in missing weeks with 0
+      const activityData: { week: string; count: number }[] = [];
+      const now = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay() - i * 7);
+        weekStart.setHours(0, 0, 0, 0);
+        const weekKey = weekStart.toISOString().split("T")[0];
+        const match = activityRows.find((r) => r.week_start.startsWith(weekKey));
+        activityData.push({
+          week: weekKey,
+          count: match ? parseInt(match.count) : 0,
+        });
+      }
+
+      return {
+        name: user.name,
+        memberSince: user.created_at.toISOString(),
+        totalPublicItems,
+        passwordCount: counts["password"] ?? 0,
+        noteCount: counts["note"] ?? 0,
+        clipboardCount: counts["clipboard"] ?? 0,
+        totalTags,
+        activityData,
+      };
     }),
 });
 

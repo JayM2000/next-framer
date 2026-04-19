@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function Dashboard() {
   const { state, dispatch } = useVault();
 
-  if (state.activeCategory === 'private') {
+  if (state.activeCategory === 'private' || state.activeCategory === 'trash') {
     return (
       <div className="mx-auto max-w-4xl px-4 py-6">
         <button 
