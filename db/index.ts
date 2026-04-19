@@ -27,7 +27,8 @@ function createPool() {
 
 declare global {
     // Survive Next.js dev hot-reloads without exhausting connections
-    let _pgPool: Pool | undefined;
+    // eslint-disable-next-line no-var
+    var _pgPool: Pool | undefined;
 }
 
 const pool: Pool =
