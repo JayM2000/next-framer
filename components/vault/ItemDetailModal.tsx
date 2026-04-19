@@ -8,7 +8,7 @@ import {
   X, Copy, Trash2, Lock, Globe, KeyRound, FileText, Clipboard,
   Eye, EyeOff, ExternalLink, Calendar, Clock, Tag as TagIcon,
   Download, Check, Hash, Type, AlignLeft, Code2,
-  Sparkles,
+  Sparkles, Pencil,
 } from 'lucide-react';
 
 const typeConfig = {
@@ -22,6 +22,7 @@ type ContentTab = 'rendered' | 'raw' | 'stats';
 interface Props {
   item: VaultItem | null;
   onClose: () => void;
+  onEdit?: (item: VaultItem) => void;
   initialTab?: ContentTab;
 }
 
@@ -103,7 +104,7 @@ function InteractiveCodeBlock({ code, onCopyLine }: { code: string; onCopyLine: 
   );
 }
 
-export default function ItemDetailModal({ item, onClose, initialTab = 'rendered' }: Props) {
+export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
   const [cachedItem, setCachedItem] = useState<VaultItem | null>(item);
   useEffect(() => {
     if (item) setCachedItem(item);
@@ -665,6 +666,20 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
           className="flex shrink-0 items-center justify-between border-t border-[var(--vault-border)] px-5 py-3 sm:px-6"
         >
           <div className="flex gap-2 flex-wrap">
+            {isOwner && onEdit && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                onClick={() => {
+                  onEdit(displayItem);
+                  onClose();
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-gold)]/40 bg-[var(--vault-gold)]/10 px-3 py-2 text-xs font-semibold text-[var(--vault-gold)] transition-colors hover:bg-[var(--vault-gold)]/20"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </motion.button>
+            )}
             {isOwner && (
               <motion.button
                 whileTap={{ scale: 0.95 }}

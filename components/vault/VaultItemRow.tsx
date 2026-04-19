@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Copy, Globe, Trash2, KeyRound, FileText } from 'lucide-react';
+import { Eye, EyeOff, Copy, Globe, Trash2, KeyRound, FileText, Pencil } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 
-export default function VaultItemRow({ item, index }: { item: VaultItem; index: number }) {
+export default function VaultItemRow({ item, index, onEdit }: { item: VaultItem; index: number; onEdit?: (item: VaultItem) => void }) {
   const { dispatch, copyToClipboard } = useVault();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -89,6 +89,15 @@ export default function VaultItemRow({ item, index }: { item: VaultItem; index: 
         >
           <Globe className="h-3.5 w-3.5" />
         </button>
+        {onEdit && (
+          <button
+            onClick={() => onEdit(item)}
+            className="vault-icon-btn text-[var(--vault-gold)]"
+            title="Edit item"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
         <button
           onClick={() => dispatch({ type: 'DELETE_ITEM', id: item.id })}
           className="vault-icon-btn text-red-400"
