@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 if (!process.env.DATABASE_URL) {
@@ -10,33 +7,27 @@ if (!process.env.DATABASE_URL) {
 // Global bypass for Neon/Aiven self-signed certificates during dev
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
+// Decode CA certificate from base64 env variable
+const caCert = process.env.DATABASE_CA_CERT
+    ? Buffer.from(process.env.DATABASE_CA_CERT, "base64").toString("utf-8")
+    : undefined;
 
 // Singleton pool — reused across requests
 function createPool() {
     return new Pool({
         connectionString: process.env.DATABASE_URL,
-        // user: process.env.POSTGRES_USER,
-        // host: process.env.POSTGRES_HOST,
-        // database: process.env.POSTGRES_DATABASE,
-        // password: process.env.POSTGRES_PASSWORD,
-        // port: Number(process.env.POSTGRES_PORT),
         max: parseInt(process.env.DATABASE_POOL_MAX ?? "10"),
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 5_000,
-        // ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: true } : false,
-        ssl: {
-            rejectUnauthorized: false,
-            ca: fs.readFileSync(path.join(__dirname, 'ca.pem')).toString()
-        }
+        ssl: caCert
+            ? { rejectUnauthorized: false, ca: caCert }
+            : false,
     });
 }
 
 declare global {
     // Survive Next.js dev hot-reloads without exhausting connections
-    var _pgPool: Pool | undefined;
+    let _pgPool: Pool | undefined;
 }
 
 const pool: Pool =
