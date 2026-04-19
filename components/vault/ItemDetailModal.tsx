@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
@@ -8,7 +8,7 @@ import {
   X, Copy, Trash2, Lock, Globe, KeyRound, FileText, Clipboard,
   Eye, EyeOff, ExternalLink, Calendar, Clock, Tag as TagIcon,
   Download, Check, Hash, Type, AlignLeft, Code2,
-  Sparkles,
+  Sparkles, Pencil,
 } from 'lucide-react';
 
 const typeConfig = {
@@ -22,6 +22,7 @@ type ContentTab = 'rendered' | 'raw' | 'stats';
 interface Props {
   item: VaultItem | null;
   onClose: () => void;
+  onEdit?: (item: VaultItem) => void;
   initialTab?: ContentTab;
 }
 
@@ -103,8 +104,16 @@ function InteractiveCodeBlock({ code, onCopyLine }: { code: string; onCopyLine: 
   );
 }
 
-export default function ItemDetailModal({ item, onClose, initialTab = 'rendered' }: Props) {
-  const { dispatch, copyToClipboard, showToast } = useVault();
+export default function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
+  const [cachedItem, setCachedItem] = useState<VaultItem | null>(item);
+  useEffect(() => {
+    if (item) setCachedItem(item);
+  }, [item]);
+
+  const displayItem = item || cachedItem;
+
+  const { dispatch, copyToClipboard, showToast, currentDbUserId } = useVault();
+  const isOwner = currentDbUserId !== null && displayItem?.userId === currentDbUserId;
   const [showPassword, setShowPassword] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -112,22 +121,22 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
 
   /* ─── Stats ─── */
   const stats = useMemo(() => {
-    if (!item) return { chars: 0, words: 0, lines: 0, codeBlocks: 0 };
-    const text = item.plainText;
+    if (!displayItem) return { chars: 0, words: 0, lines: 0, codeBlocks: 0 };
+    const text = displayItem.plainText;
     const chars = text.length;
     const words = text.split(/\s+/).filter(Boolean).length;
     const lines = text.split('\n').length;
-    const codeBlockCount = (item.content.match(/<pre>/gi) || []).length;
+    const codeBlockCount = (displayItem.content.match(/<pre>/gi) || []).length;
     return { chars, words, lines, codeBlocks: codeBlockCount };
-  }, [item]);
+  }, [displayItem]);
 
   /* ─── Extract code blocks from HTML ─── */
   const codeBlocks = useMemo(() => {
-    if (!item) return [];
+    if (!displayItem) return [];
     const regex = /<pre><code>([\s\S]*?)<\/code><\/pre>/gi;
     const blocks: string[] = [];
     let match;
-    while ((match = regex.exec(item.content)) !== null) {
+    while ((match = regex.exec(displayItem.content)) !== null) {
       const decoded = match[1]
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
@@ -138,13 +147,13 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
       blocks.push(decoded);
     }
     return blocks;
-  }, [item]);
+  }, [displayItem]);
 
-  if (!item) return null;
+  if (!displayItem) return null;
 
-  const config = typeConfig[item.type];
+  const config = typeConfig[displayItem.type];
   const Icon = config.icon;
-  const isClipboard = item.type === 'clipboard';
+  const isClipboard = displayItem.type === 'clipboard';
 
   const handleCopy = (text: string, field: string) => {
     copyToClipboard(text, `${field} copied!`);
@@ -158,22 +167,22 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
       setTimeout(() => setConfirmDelete(false), 3000);
       return;
     }
-    dispatch({ type: 'DELETE_ITEM', id: item.id });
+    dispatch({ type: 'DELETE_ITEM', id: displayItem.id });
     showToast('Item deleted');
     onClose();
   };
 
   const handleToggleVisibility = () => {
-    dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id });
-    showToast(item.visibility === 'public' ? 'Moved to private vault' : 'Made public');
+    dispatch({ type: 'TOGGLE_VISIBILITY', id: displayItem.id });
+    showToast(displayItem.visibility === 'public' ? 'Moved to private vault' : 'Made public');
   };
 
   const handleExportText = () => {
-    const blob = new Blob([item.plainText], { type: 'text/plain' });
+    const blob = new Blob([displayItem.plainText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    a.download = `${displayItem.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Downloaded as text file');
@@ -199,26 +208,28 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
 
   return (
     <AnimatePresence>
-      {/* Backdrop */}
-      <motion.div
-        key="backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        onClick={onClose}
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
-      />
+      {item && (
+        <motion.div
+          key="backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
+        />
+      )}
 
       {/* Modal */}
-      <motion.div
-        key="modal"
-        initial={{ opacity: 0, scale: 0.92, y: 50 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 30 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-        className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 flex flex-col rounded-2xl border border-[var(--vault-border)] bg-[var(--vault-panel)] shadow-2xl sm:max-w-2xl sm:w-[90vw] sm:max-h-[85vh]"
-      >
+      {item && (
+        <motion.div
+          key="modal"
+          initial={{ opacity: 0, scale: 0.92, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 30 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+          className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 flex flex-col rounded-2xl border border-[var(--vault-border)] bg-[var(--vault-panel)] shadow-2xl sm:max-w-2xl sm:w-[90vw] sm:max-h-[85vh]"
+        >
         {/* ─── Hero Header ─── */}
         <div className={`relative shrink-0 overflow-hidden rounded-t-2xl bg-gradient-to-br ${config.gradient}`}>
           {/* Decorative animated circles */}
@@ -260,7 +271,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                   transition={{ delay: 0.05 }}
                   className="text-lg font-bold text-[var(--vault-text)]"
                 >
-                  {item.title}
+                  {displayItem.title}
                 </motion.h2>
                 <div className="mt-0.5 flex items-center gap-2">
                   <motion.span
@@ -277,13 +288,13 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.15 }}
                     className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium ${
-                      item.visibility === 'public'
+                      displayItem.visibility === 'public'
                         ? 'bg-emerald-500/15 text-emerald-400'
                         : 'bg-[var(--vault-gold)]/15 text-[var(--vault-gold)]'
                     }`}
                   >
-                    {item.visibility === 'public' ? <Globe className="h-2.5 w-2.5" /> : <Lock className="h-2.5 w-2.5" />}
-                    {item.visibility}
+                    {displayItem.visibility === 'public' ? <Globe className="h-2.5 w-2.5" /> : <Lock className="h-2.5 w-2.5" />}
+                    {displayItem.visibility}
                   </motion.span>
                 </div>
               </div>
@@ -341,7 +352,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
         <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6 space-y-5">
 
           {/* Password-specific fields */}
-          {item.type === 'password' && (
+          {displayItem.type === 'password' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -349,22 +360,22 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
               className="space-y-3"
             >
               {/* Site URL */}
-              {item.siteUrl && (
+              {displayItem.siteUrl && (
                 <div className="vault-glass-card flex items-center justify-between rounded-xl border border-[var(--vault-border)] px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Website</p>
-                    <p className="truncate text-sm font-medium text-[var(--vault-text)]">{item.siteUrl}</p>
+                    <p className="truncate text-sm font-medium text-[var(--vault-text)]">{displayItem.siteUrl}</p>
                   </div>
                   <div className="flex gap-1.5">
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => handleCopy(item.siteUrl!, 'url')}
+                      onClick={() => handleCopy(displayItem.siteUrl!, 'url')}
                       className="rounded-lg p-2 text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
                     >
                       {copiedField === 'url' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                     </motion.button>
                     <a
-                      href={`https://${item.siteUrl}`}
+                      href={`https://${displayItem.siteUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg p-2 text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
@@ -376,15 +387,15 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
               )}
 
               {/* Username */}
-              {item.username && (
+              {displayItem.username && (
                 <div className="vault-glass-card flex items-center justify-between rounded-xl border border-[var(--vault-border)] px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Username</p>
-                    <p className="truncate text-sm font-medium text-[var(--vault-text)]">{item.username}</p>
+                    <p className="truncate text-sm font-medium text-[var(--vault-text)]">{displayItem.username}</p>
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => handleCopy(item.username!, 'username')}
+                    onClick={() => handleCopy(displayItem.username!, 'username')}
                     className="rounded-lg p-2 text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
                   >
                     {copiedField === 'username' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -393,12 +404,12 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
               )}
 
               {/* Password */}
-              {item.password && (
+              {displayItem.password && (
                 <div className="vault-glass-card flex items-center justify-between rounded-xl border border-[var(--vault-border)] px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Password</p>
                     <p className="truncate font-mono text-sm font-medium text-[var(--vault-text)]">
-                      {showPassword ? item.password : '•'.repeat(Math.min(item.password.length, 20))}
+                      {showPassword ? displayItem.password : '•'.repeat(Math.min(displayItem.password.length, 20))}
                     </p>
                   </div>
                   <div className="flex gap-1.5">
@@ -411,7 +422,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => handleCopy(item.password!, 'password')}
+                      onClick={() => handleCopy(displayItem.password!, 'password')}
                       className="rounded-lg p-2 text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
                     >
                       {copiedField === 'password' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -438,7 +449,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Content</p>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => handleCopy(item.plainText, 'content')}
+                      onClick={() => handleCopy(displayItem.plainText, 'content')}
                       className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
                     >
                       {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
@@ -448,7 +459,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                   <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
                     <div
                       className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)]"
-                      dangerouslySetInnerHTML={{ __html: item.content }}
+                      dangerouslySetInnerHTML={{ __html: displayItem.content }}
                     />
                   </div>
 
@@ -500,7 +511,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Raw Text</p>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => handleCopy(item.plainText, 'raw')}
+                      onClick={() => handleCopy(displayItem.plainText, 'raw')}
                       className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
                     >
                       {copiedField === 'raw' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
@@ -508,7 +519,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                     </motion.button>
                   </div>
                   <InteractiveCodeBlock
-                    code={item.plainText}
+                    code={displayItem.plainText}
                     onCopyLine={(line) => copyToClipboard(line, 'Line copied!')}
                   />
                 </motion.div>
@@ -585,7 +596,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Content</p>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleCopy(item.plainText, 'content')}
+                  onClick={() => handleCopy(displayItem.plainText, 'content')}
                   className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
                 >
                   {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
@@ -595,14 +606,14 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
               <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
                 <div
                   className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)]"
-                  dangerouslySetInnerHTML={{ __html: item.content }}
+                  dangerouslySetInnerHTML={{ __html: displayItem.content }}
                 />
               </div>
             </motion.div>
           )}
 
           {/* Tags */}
-          {item.tags.length > 0 && (
+          {displayItem.tags.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -612,7 +623,7 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
                 <TagIcon className="h-3 w-3" /> Tags
               </p>
               <div className="flex flex-wrap gap-2">
-                {item.tags.map((tag, i) => (
+                {displayItem.tags.map((tag, i) => (
                   <motion.span
                     key={tag.id}
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -638,11 +649,11 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
           >
             <div className="flex items-center gap-2 text-xs text-[var(--vault-muted)]">
               <Calendar className="h-3.5 w-3.5" />
-              <span>Created {formatDate(item.createdAt)}</span>
+              <span>Created {formatDate(displayItem.createdAt)}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-[var(--vault-muted)]">
               <Clock className="h-3.5 w-3.5" />
-              <span>Updated {formatDate(item.updatedAt)} at {formatTime(item.updatedAt)}</span>
+              <span>Updated {formatDate(displayItem.updatedAt)} at {formatTime(displayItem.updatedAt)}</span>
             </div>
           </motion.div>
         </div>
@@ -655,18 +666,34 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
           className="flex shrink-0 items-center justify-between border-t border-[var(--vault-border)] px-5 py-3 sm:px-6"
         >
           <div className="flex gap-2 flex-wrap">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleToggleVisibility}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-border)] px-3 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
-            >
-              {item.visibility === 'public' ? <Lock className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
-              {item.visibility === 'public' ? 'Make Private' : 'Make Public'}
-            </motion.button>
+            {isOwner && onEdit && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                onClick={() => {
+                  onEdit(displayItem);
+                  onClose();
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-gold)]/40 bg-[var(--vault-gold)]/10 px-3 py-2 text-xs font-semibold text-[var(--vault-gold)] transition-colors hover:bg-[var(--vault-gold)]/20"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </motion.button>
+            )}
+            {isOwner && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggleVisibility}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-border)] px-3 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
+              >
+                {displayItem.visibility === 'public' ? <Lock className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
+                {displayItem.visibility === 'public' ? 'Make Private' : 'Make Public'}
+              </motion.button>
+            )}
 
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleCopy(item.plainText, 'all')}
+              onClick={() => handleCopy(displayItem.plainText, 'all')}
               className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-border)] px-3 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
             >
               {copiedField === 'all' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -684,20 +711,23 @@ export default function ItemDetailModal({ item, onClose, initialTab = 'rendered'
             </motion.button>
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleDelete}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-              confirmDelete
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                : 'border border-[var(--vault-border)] text-[var(--vault-muted)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-            }`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {confirmDelete ? 'Confirm Delete' : 'Delete'}
-          </motion.button>
+          {isOwner && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleDelete}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                confirmDelete
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'border border-[var(--vault-border)] text-[var(--vault-muted)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+              }`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {confirmDelete ? 'Confirm Delete' : 'Delete'}
+            </motion.button>
+          )}
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

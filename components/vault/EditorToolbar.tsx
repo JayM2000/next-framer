@@ -1,7 +1,7 @@
 'use client';
 
 import { type Editor } from '@tiptap/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, Quote,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -27,6 +27,7 @@ export default function EditorToolbar({ editor }: Props) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlight, setShowHighlight] = useState(false);
+  const emojiAnchorRef = useRef<HTMLDivElement>(null);
 
   if (!editor) return null;
 
@@ -176,7 +177,7 @@ export default function EditorToolbar({ editor }: Props) {
       <Separator />
 
       {/* Row 4 — Insert */}
-      <div className="relative">
+      <div className="relative" ref={emojiAnchorRef}>
         <ToolBtn onClick={() => { setShowEmoji(!showEmoji); setShowTextColor(false); setShowHighlight(false); }} title="Emoji">
           <Smile className="h-3.5 w-3.5" />
         </ToolBtn>
@@ -184,6 +185,7 @@ export default function EditorToolbar({ editor }: Props) {
           <EmojiPicker
             onSelect={(emoji) => editor.chain().focus().insertContent(emoji).run()}
             onClose={() => setShowEmoji(false)}
+            anchorRef={emojiAnchorRef}
           />
         )}
       </div>

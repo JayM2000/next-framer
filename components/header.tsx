@@ -5,9 +5,10 @@ import { useTheme } from "next-themes"
 import { Bell, Settings, LogIn, Sun, Moon, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/sidebar-context"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { SignInButton, UserButton, useUser } from "@clerk/nextjs"
+import { performDiagonalThemeSwitch, TRANSITION_LOCK_MS } from "@/lib/theme-transition"
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -17,14 +18,27 @@ const pageTitles: Record<string, string> = {
 
 export function Header() {
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const { isCollapsed, toggleMobile } = useSidebar()
   const { isSignedIn } = useUser()
   const [mounted, setMounted] = useState(false)
+  const isAnimating = useRef(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const toggleTheme = useCallback(() => {
+    if (isAnimating.current) return
+    isAnimating.current = true
+
+    const nextTheme = resolvedTheme === "dark" ? "light" : "dark"
+    performDiagonalThemeSwitch(nextTheme, setTheme)
+
+    setTimeout(() => {
+      isAnimating.current = false
+    }, TRANSITION_LOCK_MS)
+  }, [resolvedTheme, setTheme])
 
   const title = pageTitles[pathname] || "Dashboard"
 
@@ -77,10 +91,10 @@ export function Header() {
           variant="ghost"
           size="icon"
           className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-white/15 hover:text-foreground dark:hover:bg-white/10"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          onClick={toggleTheme}
         >
           {mounted ? (
-            theme === "dark" ? (
+            resolvedTheme === "dark" ? (
               <Sun className="h-[18px] w-[18px]" />
             ) : (
               <Moon className="h-[18px] w-[18px]" />

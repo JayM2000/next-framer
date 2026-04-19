@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 
@@ -29,13 +29,15 @@ interface Props {
   index: number;
   onClick?: () => void;
   onStatsClick?: () => void;
+  onEdit?: () => void;
 }
 
-export default function ItemCard({ item, index, onClick, onStatsClick }: Props) {
-  const { dispatch, copyToClipboard } = useVault();
+export default function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
+  const { dispatch, copyToClipboard, currentDbUserId } = useVault();
   const [copied, setCopied] = useState(false);
   const Icon = typeIcons[item.type];
   const isClipboard = item.type === 'clipboard';
+  const isOwner = currentDbUserId !== null && item.userId === currentDbUserId;
 
   const handleQuickCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -87,9 +89,21 @@ export default function ItemCard({ item, index, onClick, onStatsClick }: Props) 
         </motion.div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-[var(--vault-text)]">{item.title}</h3>
-          <p className="text-[10px] text-[var(--vault-muted)]">
-            {new Date(item.createdAt).toLocaleDateString()}
-          </p>
+          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--vault-muted)]">
+            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+            <span className="h-0.5 w-0.5 rounded-full bg-[var(--vault-muted)] opacity-50" />
+            {isOwner ? (
+              <span className="inline-flex items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm">
+                <User className="h-2.5 w-2.5" />
+                You
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-sm bg-slate-500/15 px-1.5 py-0.5 font-medium text-slate-400">
+                <Globe className="h-2.5 w-2.5" />
+                Anonymous
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -130,10 +144,19 @@ export default function ItemCard({ item, index, onClick, onStatsClick }: Props) 
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           <span>{copied ? 'Copied!' : 'Copy'}</span>
         </motion.button>
-        <button className="vault-action-btn" title="Edit item">
-          <Edit3 className="h-3.5 w-3.5" />
-          <span>Edit</span>
-        </button>
+        {isOwner && (
+          <button
+            className="vault-action-btn"
+            title="Edit item"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.();
+            }}
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            <span>Edit</span>
+          </button>
+        )}
         {isClipboard && onStatsClick && (
           <button 
             className="vault-action-btn" 
@@ -147,14 +170,16 @@ export default function ItemCard({ item, index, onClick, onStatsClick }: Props) 
             <span>Stats</span>
           </button>
         )}
-        <button
-          onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
-          className="vault-action-btn ml-auto"
-          title="Make Private"
-        >
-          <Lock className="h-3.5 w-3.5" />
-          <span>Private</span>
-        </button>
+        {isOwner && (
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
+            className="vault-action-btn ml-auto"
+            title="Make Private"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            <span>Private</span>
+          </button>
+        )}
       </div>
     </motion.div>
   );

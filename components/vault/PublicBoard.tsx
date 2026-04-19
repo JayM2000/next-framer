@@ -5,12 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import ItemCard from './ItemCard';
 import ItemDetailModal from './ItemDetailModal';
+import EditItemModal from './EditItemModal';
 import { Inbox, Loader2 } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/types';
 
 export default function PublicBoard() {
   const { state, isLoading, isRefetching } = useVault();
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
+  const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
 
   const publicItems = useMemo(() => {
     let items = state.items.filter(i => i.visibility === 'public');
@@ -38,6 +40,16 @@ export default function PublicBoard() {
       default: return 'Public Board';
     }
   }, [state.activeCategory]);
+
+  const handleEditFromDetail = (item: VaultItem) => {
+    setSelectedItem(null);
+    // Small delay to let the detail modal exit animation complete
+    setTimeout(() => setEditingItem(item), 200);
+  };
+
+  const handleEditFromCard = (item: VaultItem) => {
+    setEditingItem(item);
+  };
 
   return (
     <div className="flex-1">
@@ -97,6 +109,7 @@ export default function PublicBoard() {
                   index={i}
                   onClick={() => setSelectedItem({ item })}
                   onStatsClick={() => setSelectedItem({ item, initialTab: 'stats' })}
+                  onEdit={() => handleEditFromCard(item)}
                 />
               ))}
             </AnimatePresence>
@@ -105,15 +118,18 @@ export default function PublicBoard() {
       )}
 
       {/* Detail Modal */}
-      <AnimatePresence>
-        {selectedItem && (
-          <ItemDetailModal
-            item={selectedItem.item}
-            initialTab={selectedItem.initialTab}
-            onClose={() => setSelectedItem(null)}
-          />
-        )}
-      </AnimatePresence>
+      <ItemDetailModal
+        item={selectedItem ? selectedItem.item : null}
+        initialTab={selectedItem ? selectedItem.initialTab : undefined}
+        onClose={() => setSelectedItem(null)}
+        onEdit={handleEditFromDetail}
+      />
+
+      {/* Edit Modal */}
+      <EditItemModal
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+      />
     </div>
   );
 }

@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Generated files
+*.generated.py
+*.min.js
+*.bundle.js
+
+# Logs & cache
+*.log
+.cache/
+
+# Environment & secrets
+.env
+.env.*
+
+# Test snapshots
+__snapshots__/
+coverage/
