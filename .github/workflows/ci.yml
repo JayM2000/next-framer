@@ -45,7 +45,7 @@ jobs:
           rm -rf .next
 
       - name: Install dependencies (fresh)
-        run: yarn install --frozen-lockfile --prefer-offline false
+        run: yarn add --frozen-lockfile --prefer-offline false
         # --prefer-offline false = always fetch from registry, never local cache
 
       - name: Deploy to Render
