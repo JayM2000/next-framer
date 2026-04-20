@@ -1,7 +1,7 @@
-# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-19)
+# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-20)
 
 ## Corpus Check
-- 81 files · ~66,218 words
+- 81 files · ~66,192 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
