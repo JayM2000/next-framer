@@ -2,27 +2,23 @@ name: CI and Deploy
 
 on:
   push:
-    branches: [master] # Only run this workflow on merge/push to master
+    branches: [master]
 
 jobs:
-  # This job is optional — see note below
   check-merge-source:
-    name: Prevent direct merge to master (DEV only)
+    name: Prevent direct push to master
     runs-on: ubuntu-latest
 
     steps:
-      - name: Fail if master commit not from dev
+      - name: Fail if pushed directly to master (not from PR)
         run: |
           echo "Checking merge source..."
-          # Get the branch that triggered the push
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          # When committing directly to master (not merge), abort
-          if [[ "${{ github.head_ref }}" == "master" ]]; then
-            echo "Push directly to master detected."
-            echo "Use pull requests from dev branch only."
+          if [[ -z "${{ github.event.pull_request.head.ref }}" ]]; then
+            echo "❌ Direct push to master is not allowed."
+            echo "Please merge via a Pull Request from dev branch."
             exit 1
           fi
-          echo "Merge source OK."
+          echo "✅ Merge source OK — came from PR."
 
   ci:
     name: CI & Deploy to Render
@@ -31,22 +27,27 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4          # ✅ Fixed: v5 doesn't exist
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Setup Node (no cache)
+        uses: actions/setup-node@v4        # ✅ Upgraded to v4
         with:
-          node-version: 22.16.0
+          node-version: 22.x
+          # ❌ No `cache: 'yarn'` — disables auto-caching
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Clean previous dependencies  # ✅ Force fresh every time
+        run: |
+          rm -rf node_modules
+          rm -rf .yarn/cache
+          rm -rf .next
 
-      # - name: Build
-      #   run: yarn build
+      - name: Install dependencies (fresh)
+        run: yarn install --frozen-lockfile --prefer-offline false
+        # --prefer-offline false = always fetch from registry, never local cache
 
       - name: Deploy to Render
         env:
           DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          echo "Triggering Render Deploy..."
+          echo "🚀 Triggering Render Deploy..."
           curl -X POST "$DEPLOY_HOOK_URL"
