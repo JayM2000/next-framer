@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Fail if pushed directly to master (not from PR)
+      - name: Fail if master commit not from dev
         run: |
           echo "Checking merge source..."
-          if [[ -z "${{ github.event.pull_request.head.ref }}" ]]; then
-            echo "❌ Direct push to master is not allowed."
-            echo "Please merge via a Pull Request from dev branch."
+          # Get the branch that triggered the push
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          # When committing directly to master (not merge), abort
+          if [[ "${{ github.head_ref }}" == "master" ]]; then
+            echo "Push directly to master detected."
+            echo "Use pull requests from dev branch only."
             exit 1
           fi
-          echo "✅ Merge source OK — came from PR."
+          echo "Merge source OK."
 
   ci:
     name: CI & Deploy to Render
