@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.7",
-    "@tailwindcss/postcss": "^4",
     "@hugeicons/core-free-icons": "^4.0.0",
     "@hugeicons/react": "^1.1.6",
+    "@tailwindcss/postcss": "^4",
     "@tanstack/react-query": "^5.95.2",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.23",
