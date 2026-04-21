@@ -40,6 +40,7 @@ export interface AppState {
   auth: AuthState;
   items: VaultItem[];
   searchQuery: string;
+  selectedTags: string[];
   toast: { message: string; visible: boolean };
   activeTab: 'dashboard' | 'vault' | 'create';
   activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
@@ -58,6 +59,7 @@ export type AppAction =
   | { type: 'TOGGLE_VISIBILITY'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
   | { type: 'INCREMENT_COPY_COUNT'; id: string }
   | { type: 'SET_SEARCH'; query: string }
+  | { type: 'SET_SELECTED_TAGS'; tags: string[] }
   | { type: 'SHOW_TOAST'; message: string }
   | { type: 'HIDE_TOAST' }
   | { type: 'SET_TAB'; tab: AppState['activeTab'] }

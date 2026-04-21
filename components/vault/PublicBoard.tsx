@@ -179,11 +179,17 @@ export default function PublicBoard() {
       );
     }
 
+    if (state.selectedTags && state.selectedTags.length > 0) {
+      items = items.filter(i =>
+        state.selectedTags.every(tag => i.tags.some(t => t.label === tag))
+      );
+    }
+
     return items;
-  }, [state.items, state.searchQuery, state.activeCategory]);
+  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags]);
 
   // ── Build sections ──
-  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery;
+  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0);
 
   const sections: Section[] = useMemo(() => {
     if (isFiltered) {
