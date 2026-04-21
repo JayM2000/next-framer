@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, Flame } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import UserProfileHoverCard from './UserProfileHoverCard';
 
 const typeIcons = {
@@ -61,9 +62,22 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="vault-glass-card group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-[var(--vault-border)] transition-shadow hover:shadow-lg hover:shadow-[var(--vault-gold)]/5 hover:border-[var(--vault-gold)]/30"
+      className="vault-glass-card group relative flex cursor-pointer flex-col rounded-xl border border-[var(--vault-border)] transition-shadow hover:shadow-lg hover:shadow-[var(--vault-gold)]/5 hover:border-[var(--vault-gold)]/30"
       style={{ background: typeGradients[item.type] }}
     >
+      {/* Top-left absolute copy count badge on the card itself */}
+      {(item.copyCount ?? 0) > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="absolute -left-1.5 -top-1.5 z-10 flex min-w-[22px] h-[22px] items-center justify-center rounded-full bg-[var(--vault-gold)] px-1 text-[10px] font-bold text-[#0a0a0f] shadow-[0_2px_8px_rgba(201,168,76,0.3)] ring-4 ring-[var(--vault-panel)] cursor-default">
+              {item.copyCount}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="border-orange-500/30 bg-[var(--vault-glass)] backdrop-blur-xl text-orange-600 dark:text-orange-400 shadow-lg font-medium text-xs">
+            <p>Copied {item.copyCount} times</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
       {/* Hover glow effect for clipboard cards */}
       {isClipboard && (
         <motion.div
@@ -82,18 +96,19 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
         <ArrowUpRight className="h-3 w-3" />
       </motion.div>
 
-      {/* Header */}
       <div className="flex items-start gap-2.5 p-4 pb-2">
         <motion.div
           whileHover={{ rotate: [0, -10, 10, 0] }}
           transition={{ duration: 0.4 }}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${typeColors[item.type]}15`, color: typeColors[item.type] }}
         >
           <Icon className="h-4 w-4" />
         </motion.div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-[var(--vault-text)]">{item.title}</h3>
+        <div className="min-w-0 flex-1 pr-8">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-sm font-semibold text-[var(--vault-text)]">{item.title}</h3>
+          </div>
           <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--vault-muted)]">
             <span>{new Date(item.createdAt).toLocaleDateString()}</span>
             <span className="h-0.5 w-0.5 rounded-full bg-[var(--vault-muted)] opacity-50" />
@@ -160,7 +175,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
       {/* Action Bar */}
       <div
-        className="flex items-center gap-1 border-t border-[var(--vault-border)] px-3 py-2"
+        className="@container flex items-center gap-1 border-t border-[var(--vault-border)] px-3 py-2 overflow-hidden rounded-b-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <motion.button
@@ -198,22 +213,21 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
             <span>Stats</span>
           </button>
         )}
-        {/* Copy count badge — pushed right */}
-        {(item.copyCount ?? 0) > 0 && (
-          <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-medium text-orange-400" title={`Copied ${item.copyCount} times`}>
-            <Flame className="h-2.5 w-2.5" />
-            {item.copyCount}
-          </span>
-        )}
         {isOwner && (
-          <button
-            onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
-            className={`vault-action-btn ${(item.copyCount ?? 0) > 0 ? '' : 'ml-auto'}`}
-            title="Make Private"
-          >
-            <Lock className="h-3.5 w-3.5" />
-            <span>Private</span>
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => dispatch({ type: 'TOGGLE_VISIBILITY', id: item.id })}
+                className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-red-500/10 px-2 py-1.5 text-xs font-medium text-orange-400 transition-all hover:border-orange-500/40 hover:from-orange-500/20 hover:to-red-500/20"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                <span className="hidden @[250px]:inline">Private</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="border-orange-500/30 bg-[var(--vault-glass)] backdrop-blur-xl text-orange-600 dark:text-orange-400 shadow-lg font-medium text-xs">
+              <p>{item.visibility === 'public' ? "Make Private (Only you can see this)" : "Make Public (Anyone can see this)"}</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
     </motion.div>

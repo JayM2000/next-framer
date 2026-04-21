@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TRPCProvider } from "@/trpc/client";
 import { SocketProvider } from "@/components/providers/SocketProvider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Fredoka, Cinzel, DM_Sans } from "next/font/google";
@@ -50,8 +51,10 @@ export default function RootLayout({
           >
             <TRPCProvider>
               <SocketProvider>
-                <Toaster />
-                {children}
+                <TooltipProvider delayDuration={200}>
+                  <Toaster />
+                  {children}
+                </TooltipProvider>
               </SocketProvider>
             </TRPCProvider>
           </ThemeProvider>

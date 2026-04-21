@@ -583,6 +583,25 @@ export const vaultRouter = createTRPCRouter({
       return { success: true };
     }),
 
+  // ── Get all distinct tags (PUBLIC — no auth required) ─────
+  getAllTags: baseProcedure.query(async () => {
+    const tags = await query<{ label: string; color: string; usage_count: string }>(
+      `SELECT vt.label, vt.color, COUNT(vit.item_id)::text AS usage_count
+       FROM vault_tags vt
+       JOIN vault_item_tags vit ON vit.tag_id = vt.id
+       JOIN vault_items vi ON vi.id = vit.item_id
+       WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+       GROUP BY vt.label, vt.color
+       ORDER BY COUNT(vit.item_id) DESC, vt.label ASC`
+    );
+
+    return tags.map((t) => ({
+      label: t.label,
+      color: t.color,
+      count: parseInt(t.usage_count),
+    }));
+  }),
+
   // ══════════════════════════════════════════════════════════
   //  USER SETTINGS
   // ══════════════════════════════════════════════════════════

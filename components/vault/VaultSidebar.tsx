@@ -25,16 +25,25 @@ export default function VaultSidebar() {
       items = items.filter(i => i.visibility === 'private' && !i.isDeleted);
     }
 
-    if (!state.searchQuery) return items;
-    const q = state.searchQuery.toLowerCase();
-    return items.filter(i =>
-      i.title.toLowerCase().includes(q) ||
-      i.plainText.toLowerCase().includes(q) ||
-      i.tags.some(t => t.label.toLowerCase().includes(q)) ||
-      (i.username && i.username.toLowerCase().includes(q)) ||
-      (i.siteUrl && i.siteUrl.toLowerCase().includes(q))
-    );
-  }, [state.items, state.searchQuery, state.activeCategory]);
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      items = items.filter(i =>
+        i.title.toLowerCase().includes(q) ||
+        i.plainText.toLowerCase().includes(q) ||
+        i.tags.some(t => t.label.toLowerCase().includes(q)) ||
+        (i.username && i.username.toLowerCase().includes(q)) ||
+        (i.siteUrl && i.siteUrl.toLowerCase().includes(q))
+      );
+    }
+
+    if (state.selectedTags && state.selectedTags.length > 0) {
+      items = items.filter(i =>
+        state.selectedTags.every(tag => i.tags.some(t => t.label === tag))
+      );
+    }
+
+    return items;
+  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags]);
 
   const handleEditFromDetail = (item: VaultItem) => {
     setSelectedItem(null);

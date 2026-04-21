@@ -21,7 +21,11 @@ export default function Header() {
               <SearchBar />
             </div>
             <button
-               onClick={() => setIsMobileSearchOpen(false)}
+               onClick={() => {
+                 setIsMobileSearchOpen(false);
+                 dispatch({ type: 'SET_SEARCH', query: '' });
+                 dispatch({ type: 'SET_SELECTED_TAGS', tags: [] });
+               }}
                className="text-sm font-medium shrink-0 text-[var(--vault-muted)] hover:text-[var(--vault-text)] transition-colors"
             >
                Cancel

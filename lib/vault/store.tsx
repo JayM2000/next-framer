@@ -18,6 +18,7 @@ import { useSocket } from '@/components/providers/SocketProvider';
 
 interface UIState {
   searchQuery: string;
+  selectedTags: string[];
   toast: { message: string; visible: boolean };
   activeTab: 'dashboard' | 'vault' | 'create';
   activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
@@ -27,6 +28,7 @@ interface UIState {
 
 type UIAction =
   | { type: 'SET_SEARCH'; query: string }
+  | { type: 'SET_SELECTED_TAGS'; tags: string[] }
   | { type: 'SHOW_TOAST'; message: string }
   | { type: 'HIDE_TOAST' }
   | { type: 'SET_TAB'; tab: UIState['activeTab'] }
@@ -36,6 +38,7 @@ type UIAction =
 
 const initialUIState: UIState = {
   searchQuery: '',
+  selectedTags: [],
   toast: { message: '', visible: false },
   activeTab: 'dashboard',
   activeCategory: 'all',
@@ -47,6 +50,8 @@ function uiReducer(state: UIState, action: UIAction): UIState {
   switch (action.type) {
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.query };
+    case 'SET_SELECTED_TAGS':
+      return { ...state, selectedTags: action.tags };
     case 'SHOW_TOAST':
       return { ...state, toast: { message: action.message, visible: true } };
     case 'HIDE_TOAST':
@@ -315,6 +320,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         case 'SET_SEARCH':
           uiDispatch(action);
           break;
+        case 'SET_SELECTED_TAGS':
+          uiDispatch(action);
+          break;
         case 'SHOW_TOAST':
           uiDispatch(action);
           break;
@@ -349,6 +357,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       auth: { isLoggedIn: false, username: null }, // Clerk handles auth, not used by components
       items,
       searchQuery: ui.searchQuery,
+      selectedTags: ui.selectedTags,
       toast: ui.toast,
       activeTab: ui.activeTab,
       activeCategory: ui.activeCategory,
