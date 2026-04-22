@@ -134,7 +134,7 @@
 /* Dot-grid background pattern for the main app shell */
 .glass-dot-bg {
   position: relative;
-  overflow: hidden; /* clip the oversized pseudo-element */
+  overflow: clip; /* clip the oversized pseudo-element without breaking position:sticky */
 }
 .glass-dot-bg::before {
   content: '';

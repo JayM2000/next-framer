@@ -31,9 +31,9 @@ function VaultContent() {
       {/* Right side: scrollable column with sticky header */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Desktop scrollable area — header sticks, content flows under it */}
-        <div className="hidden sm:block flex-1 overflow-y-auto">
+        <div className="hidden sm:flex flex-col flex-1 min-h-0 min-w-0">
           <Header />
-          <div className="relative z-0">
+          <div className="relative z-0 flex-1 flex flex-col min-h-0">
             <Dashboard />
           </div>
         </div>
