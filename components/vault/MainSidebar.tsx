@@ -46,10 +46,10 @@ export default function MainSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="h-full w-full flex flex-col bg-[var(--vault-panel)]">
+      <aside className="h-full w-full flex flex-col">
       
         {/* Top Fixed Area */}
-        <div className="flex shrink-0 items-center border-b border-[var(--vault-border)] h-14 px-4 transition-all md:hidden">
+        <div className="flex shrink-0 items-center border-b border-white/[0.06] h-14 px-4 transition-all">
           <div className={`flex items-center gap-2 ${state.sidebarOpen ? 'w-full' : 'w-full justify-center'}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--vault-gold)] to-[var(--vault-gold-light)]">
               <Shield className="h-4 w-4 text-[#0a0a0f]" />
@@ -192,7 +192,7 @@ export default function MainSidebar() {
       </div>
 
       {/* Bottom Fixed Area */}
-      <div className={`shrink-0 border-t border-[var(--vault-border)] p-4 transition-all ${
+      <div className={`shrink-0 border-t border-white/[0.06] p-4 transition-all ${
          state.sidebarOpen ? 'text-left' : 'text-center'
       }`}>
         {state.sidebarOpen ? (

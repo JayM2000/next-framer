@@ -45,7 +45,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-30 flex h-16 items-center justify-between border-b border-gray-200/60 bg-[#f7f7f8] px-4 shadow-sm transition-all duration-300 dark:border-white/10 dark:bg-[#131320] sm:px-6",
+        "glass-panel fixed top-0 right-0 z-30 flex h-16 items-center justify-between border-b px-4 transition-all duration-300 sm:px-6",
         // Offset for sidebar width
         isCollapsed ? "md:left-[68px]" : "md:left-60",
         "left-0"
@@ -113,7 +113,7 @@ export function Header() {
           <SignInButton mode="modal">
             <Button
               variant="ghost"
-              className="ml-1 gap-2 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 px-3.5 py-2 text-sm font-medium text-white shadow-md shadow-indigo-500/25 hover:from-indigo-600 hover:to-violet-700 hover:text-white"
+              className="ml-1 gap-2 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 px-3.5 py-2 text-sm font-medium text-white shadow-lg shadow-violet-500/25 hover:from-violet-600 hover:to-purple-700 hover:text-white"
             >
               <LogIn className="h-4 w-4" />
               Sign In

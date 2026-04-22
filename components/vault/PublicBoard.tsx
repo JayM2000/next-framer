@@ -321,9 +321,9 @@ export default function PublicBoard() {
   const dimmed = isLoading || isRefetching;
 
   return (
-    <div className="flex-1">
-      {/* Header */}
-      <div className="mb-5 flex items-center justify-between">
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Header — fixed, never scrolls */}
+      <div className="shrink-0 mb-3 flex items-center justify-between pb-2 pt-1">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--vault-text)]">
           <Sparkles className="h-4 w-4 text-[var(--vault-gold)]" />
           {boardTitle}
@@ -344,110 +344,113 @@ export default function PublicBoard() {
         </h2>
       </div>
 
-      {/* Empty state */}
-      {totalCount === 0 && !isLoading ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-16 text-[var(--vault-muted)]"
-        >
-          <Inbox className="mb-3 h-12 w-12 opacity-30" />
-          <p className="text-sm">No items found</p>
-          <p className="text-xs">
-            {state.searchQuery ? 'Try a different search query' : 'Create your first item!'}
-          </p>
-        </motion.div>
-      ) : (
-        <div className="relative">
-          {/* Spinner overlay */}
-          {(isLoading || isRefetching) && (
-            <div className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="pointer-events-auto flex items-center gap-2 rounded-xl bg-[var(--vault-panel)]/80 px-4 py-2 shadow-xl backdrop-blur-sm border border-[var(--vault-border)]">
-                <Loader2 className="h-5 w-5 animate-spin text-[var(--vault-gold)]" />
-                <span className="text-xs font-medium text-[var(--vault-gold)]">
-                  {isLoading ? 'Loading...' : 'Updating...'}
-                </span>
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {/* Empty state */}
+        {totalCount === 0 && !isLoading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-16 text-[var(--vault-muted)]"
+          >
+            <Inbox className="mb-3 h-12 w-12 opacity-30" />
+            <p className="text-sm">No items found</p>
+            <p className="text-xs">
+              {state.searchQuery ? 'Try a different search query' : 'Create your first item!'}
+            </p>
+          </motion.div>
+        ) : (
+          <div className="relative">
+            {/* Spinner overlay */}
+            {(isLoading || isRefetching) && (
+              <div className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="pointer-events-auto flex items-center gap-2 rounded-xl bg-[var(--vault-panel)]/80 px-4 py-2 shadow-xl backdrop-blur-sm border border-[var(--vault-border)]">
+                  <Loader2 className="h-5 w-5 animate-spin text-[var(--vault-gold)]" />
+                  <span className="text-xs font-medium text-[var(--vault-gold)]">
+                    {isLoading ? 'Loading...' : 'Updating...'}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Sectioned View (default "all" category, no search) ── */}
-          {!isFiltered && sections.length > 0 && (
-            <div className="space-y-6">
-              {sections.map((section, sectionIdx) => {
-                // Calculate card index offset for stagger animation
-                const offset = sections
-                  .slice(0, sectionIdx)
-                  .reduce((sum, s) => sum + s.items.length, 0);
+            {/* ── Sectioned View (default "all" category, no search) ── */}
+            {!isFiltered && sections.length > 0 && (
+              <div className="space-y-6">
+                {sections.map((section, sectionIdx) => {
+                  // Calculate card index offset for stagger animation
+                  const offset = sections
+                    .slice(0, sectionIdx)
+                    .reduce((sum, s) => sum + s.items.length, 0);
 
-                return (
-                  <motion.section
-                    key={section.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: sectionIdx * 0.1 }}
-                  >
-                    <SectionDivider
-                      title={section.title}
-                      subtitle={section.subtitle}
-                      icon={section.icon}
-                      accentColor={section.accentColor}
-                      accentBg={section.accentBg}
-                      glowColor={section.glowColor}
-                      count={section.items.length}
-                      index={sectionIdx}
-                    />
-                      <CardGrid
-                        items={section.items}
-                        indexOffset={offset}
-                        onItemClick={handleItemClick}
-                        onStatsClick={handleStatsClick}
-                        onEdit={handleEditFromCard}
-                        dimmed={dimmed}
+                  return (
+                    <motion.section
+                      key={section.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: sectionIdx * 0.1 }}
+                    >
+                      <SectionDivider
+                        title={section.title}
+                        subtitle={section.subtitle}
+                        icon={section.icon}
+                        accentColor={section.accentColor}
+                        accentBg={section.accentBg}
+                        glowColor={section.glowColor}
+                        count={section.items.length}
+                        index={sectionIdx}
                       />
-                  </motion.section>
-                );
-              })}
-            </div>
-          )}
+                        <CardGrid
+                          items={section.items}
+                          indexOffset={offset}
+                          onItemClick={handleItemClick}
+                          onStatsClick={handleStatsClick}
+                          onEdit={handleEditFromCard}
+                          dimmed={dimmed}
+                        />
+                    </motion.section>
+                  );
+                })}
+              </div>
+            )}
 
-          {/* ── Flat View (filtered by category or search) ── */}
-          {isFiltered && flatSortedItems.length > 0 && (
-            <CardGrid
-              items={flatSortedItems}
-              indexOffset={0}
-              onItemClick={handleItemClick}
-              onStatsClick={handleStatsClick}
-              onEdit={handleEditFromCard}
-              dimmed={dimmed}
-            />
-          )}
-
-          {/* ── Flat fallback when no sections exist (all items have 0 copies, same type, etc.) ── */}
-          {!isFiltered && sections.length === 0 && totalCount > 0 && (
-            <>
-              <SectionDivider
-                title="Recently Added"
-                subtitle="Fresh items"
-                icon={Clock}
-                accentColor="#64748b"
-                accentBg="rgba(100,116,139,0.06)"
-                glowColor="rgba(100,116,139,0.10)"
-                count={totalCount}
-                index={0}
-              />
+            {/* ── Flat View (filtered by category or search) ── */}
+            {isFiltered && flatSortedItems.length > 0 && (
               <CardGrid
-                items={filteredItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
+                items={flatSortedItems}
                 indexOffset={0}
                 onItemClick={handleItemClick}
                 onStatsClick={handleStatsClick}
                 onEdit={handleEditFromCard}
                 dimmed={dimmed}
               />
-            </>
-          )}
-        </div>
-      )}
+            )}
+
+            {/* ── Flat fallback when no sections exist (all items have 0 copies, same type, etc.) ── */}
+            {!isFiltered && sections.length === 0 && totalCount > 0 && (
+              <>
+                <SectionDivider
+                  title="Recently Added"
+                  subtitle="Fresh items"
+                  icon={Clock}
+                  accentColor="#64748b"
+                  accentBg="rgba(100,116,139,0.06)"
+                  glowColor="rgba(100,116,139,0.10)"
+                  count={totalCount}
+                  index={0}
+                />
+                <CardGrid
+                  items={filteredItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
+                  indexOffset={0}
+                  onItemClick={handleItemClick}
+                  onStatsClick={handleStatsClick}
+                  onEdit={handleEditFromCard}
+                  dimmed={dimmed}
+                />
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Detail Modal */}
       <ItemDetailModal
