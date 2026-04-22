@@ -1,12 +1,12 @@
-# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-20)
+# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-21)
 
 ## Corpus Check
-- 81 files · ~66,192 words
+- 81 files · ~66,969 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 186 nodes · 125 edges · 68 communities detected
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
+- 190 nodes · 129 edges · 67 communities detected
+- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -77,7 +77,6 @@
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
-- [[_COMMUNITY_Community 67|Community 67]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `query()` - 7 edges
@@ -92,22 +91,22 @@
 10. `useSidebar()` - 2 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
 - `GET()` --calls--> `query()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\app\api\vehicle-parts\list\route.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
 - `query()` --calls--> `migrate()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\migrate-users.mjs
 - `query()` --calls--> `runSchemas()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\run-schemas.mjs
+- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
 - `DashboardContent()` --calls--> `useSidebar()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\app\(dashboard)\layout.tsx → C:\Users\misal\OneDrive\Documents\next-framer\components\sidebar-context.tsx
 
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.16
-Nodes (6): query(), withTransaction(), migrate(), GET(), POST(), runSchemas()
+Cohesion: 0.12
+Nodes (7): query(), withTransaction(), migrate(), GET(), POST(), runSchemas(), upsertTagsForItem()
 
 ### Community 1 - "Community 1"
 Cohesion: 0.15
@@ -143,7 +142,7 @@ Nodes (0):
 
 ### Community 9 - "Community 9"
 Cohesion: 0.4
-Nodes (1): upsertTagsForItem()
+Nodes (0): 
 
 ### Community 10 - "Community 10"
 Cohesion: 0.5
@@ -373,10 +372,6 @@ Nodes (0):
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 67 - "Community 67"
-Cohesion: 1.0
-Nodes (0): 
-
 ## Knowledge Gaps
 - **Thin community `Community 20`** (2 nodes): `layout.tsx`, `RootLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -460,31 +455,27 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 60`** (1 nodes): `MobileQuickAdd.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (1 nodes): `SearchBar.tsx`
+- **Thin community `Community 61`** (1 nodes): `VaultApp.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (1 nodes): `VaultApp.tsx`
+- **Thin community `Community 62`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (1 nodes): `types.ts`
+- **Thin community `Community 63`** (1 nodes): `init.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (1 nodes): `init.ts`
+- **Thin community `Community 64`** (1 nodes): `server.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (1 nodes): `server.tsx`
+- **Thin community `Community 65`** (1 nodes): `vehiclesPart.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 66`** (1 nodes): `vehiclesPart.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 67`** (1 nodes): `_app.ts`
+- **Thin community `Community 66`** (1 nodes): `_app.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `query()` connect `Community 0` to `Community 9`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `upsertTagsForItem()` connect `Community 9` to `Community 0`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `query()` (e.g. with `POST()` and `GET()`) actually correct?**
   _`query()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `POST()` (e.g. with `query()` and `withTransaction()`) actually correct?**
   _`POST()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `useVault()` (e.g. with `Dashboard()` and `Toast()`) actually correct?**
   _`useVault()` has 3 INFERRED edges - model-reasoned connections that need verification._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._

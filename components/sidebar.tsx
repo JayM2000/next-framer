@@ -27,15 +27,15 @@ export function Sidebar() {
       {/* Mobile overlay backdrop */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md md:hidden"
           onClick={closeMobile}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — Glassmorphic */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-gray-200/60 bg-[#f0f0f2] shadow-lg shadow-black/5 transition-all duration-300 dark:border-white/10 dark:bg-[#0e0e18]",
+          "glass-panel fixed left-0 top-0 z-50 flex h-screen flex-col border-r transition-all duration-300",
           // Desktop: collapsed or expanded
           isCollapsed ? "md:w-[68px]" : "md:w-60",
           // Mobile: slide in/out
@@ -45,8 +45,8 @@ export function Sidebar() {
         )}
       >
         {/* Logo + collapse toggle */}
-        <div className="flex h-16 items-center gap-2.5 border-b border-gray-200/60 px-4 dark:border-white/10">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25">
+        <div className="flex h-16 items-center gap-2.5 border-b border-inherit px-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
             <Wrench className="h-5 w-5 text-white" />
           </div>
           <span
@@ -62,7 +62,7 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-8 w-8 text-muted-foreground md:hidden"
+            className="ml-auto h-8 w-8 text-muted-foreground hover:bg-white/10 hover:text-foreground md:hidden"
             onClick={closeMobile}
           >
             <X className="h-4 w-4" />
@@ -83,7 +83,7 @@ export function Sidebar() {
 
         {/* Expand button below logo — only when collapsed */}
         {isCollapsed && (
-          <div className="hidden border-b border-gray-200/60 px-2 py-2 dark:border-white/10 md:block">
+          <div className="hidden border-b border-inherit px-2 py-2 md:block">
             <Button
               variant="ghost"
               size="icon"
@@ -107,22 +107,22 @@ export function Sidebar() {
                 href={item.href}
                 onClick={closeMobile}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "glass-nav-item group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isCollapsed && "md:justify-center md:px-0",
                   isActive
-                    ? "bg-white/20 text-foreground shadow-sm dark:bg-white/10"
-                    : "text-muted-foreground hover:bg-white/10 hover:text-foreground dark:hover:bg-white/5"
+                    ? "active text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {/* Active indicator bar */}
+                {/* Active indicator bar — purple gradient */}
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-indigo-500 to-violet-600" />
+                  <div className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-violet-500 to-purple-600 shadow-sm shadow-violet-500/50" />
                 )}
                 <item.icon
                   className={cn(
                     "h-[18px] w-[18px] shrink-0 transition-colors",
                     isActive
-                      ? "text-indigo-500 dark:text-indigo-400"
+                      ? "text-violet-500 dark:text-violet-400"
                       : "text-muted-foreground group-hover:text-foreground"
                   )}
                 />
@@ -157,12 +157,10 @@ export function Sidebar() {
           })}
         </nav>
 
-
-
         {/* Footer - only when expanded */}
         {!isCollapsed && (
-          <div className="border-t border-gray-200/60 px-5 py-4 dark:border-white/10 md:block">
-            <p className="text-xs text-muted-foreground">© 2026 AutoParts</p>
+          <div className="border-t border-inherit px-5 py-4 md:block">
+            <p className="text-xs text-muted-foreground/70">© 2026 AutoParts</p>
           </div>
         )}
       </aside>
