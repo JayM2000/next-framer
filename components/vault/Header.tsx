@@ -14,7 +14,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="shrink-0 z-40 border-b border-[var(--vault-border)] bg-[var(--vault-panel)]/80 backdrop-blur-xl">
+      <header className="vault-glass-header sticky top-0 z-20 border-b border-white/[0.06]">
         {isMobileSearchOpen ? (
           <div className="flex h-14 w-full items-center px-4 gap-3 md:hidden">
             <div className="flex-1 w-full">
