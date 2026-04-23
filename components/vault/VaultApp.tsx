@@ -21,6 +21,7 @@ function VaultContent() {
 
       {/* Desktop: Sidebar (fixed full-height column) */}
       <motion.div
+        initial={false}
         animate={{ width: state.sidebarOpen ? 256 : 64 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className="vault-glass-sidebar hidden sm:flex shrink-0 border-r border-white/[0.06] overflow-hidden"
@@ -33,17 +34,21 @@ function VaultContent() {
         {/* Desktop scrollable area — header sticks, content flows under it */}
         <div className="hidden sm:flex flex-col flex-1 min-h-0 min-w-0">
           <Header />
-          <div className="relative z-0 flex-1 flex flex-col min-h-0">
+          <div className="relative flex-1 flex flex-col min-h-0">
             <Dashboard />
           </div>
         </div>
 
         {/* Mobile scrollable area */}
-        <div className="block sm:hidden flex-1 overflow-y-auto pb-16">
+        <div className="flex sm:hidden flex-1 flex-col min-h-0 pb-16">
           <Header />
-          <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="mx-auto max-w-7xl px-4 py-4 flex-1 flex flex-col min-h-0 w-full">
             {state.activeTab === 'dashboard' && <PublicBoard />}
-            {state.activeTab === 'vault' && <VaultSidebar />}
+            {state.activeTab === 'vault' && (
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <VaultSidebar />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, useRef, memo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import ItemCard from './ItemCard';
@@ -123,18 +123,16 @@ const CardGrid = memo(function CardGrid({
   onItemClick,
   onStatsClick,
   onEdit,
-  dimmed,
 }: {
   items: VaultItem[];
   indexOffset: number;
   onItemClick: (item: VaultItem) => void;
   onStatsClick: (item: VaultItem) => void;
   onEdit: (item: VaultItem) => void;
-  dimmed: boolean;
 }) {
   return (
     <div
-      className={`grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 transition-opacity duration-300 ${dimmed ? 'opacity-30' : 'opacity-100'}`}
+      className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
     >
       <AnimatePresence mode="popLayout">
         {items.map((item, i) => (
@@ -159,6 +157,14 @@ const CardGrid = memo(function CardGrid({
 export default function PublicBoard() {
   const { state, isLoading, isRefetching } = useVault();
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current) {
+      setIsScrolled(scrollRef.current.scrollTop > 4);
+    }
+  }, []);
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
 
   // ── Build filtered base list ──
@@ -318,12 +324,19 @@ export default function PublicBoard() {
     setSelectedItem({ item, initialTab: 'stats' });
   }, []);
 
-  const dimmed = isLoading || isRefetching;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header — fixed, never scrolls */}
-      <div className="shrink-0 mb-3 flex items-center justify-between pb-2 pt-1">
+      <div className="shrink-0 mb-0 flex items-center justify-between pb-2 pt-1 pl-[20px] relative z-10">
+        {/* Scroll shadow constrained to central 80% */}
+        <div
+          className="absolute bottom-0 left-[1%] right-[1%] h-full pointer-events-none transition-opacity duration-300 rounded-3xl"
+          style={{
+            boxShadow: '0 6px 8px -6px var(--vault-scroll-shadow)',
+            opacity: isScrolled ? 1 : 0
+          }}
+        />
         <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--vault-text)]">
           <Sparkles className="h-4 w-4 text-[var(--vault-gold)]" />
           {boardTitle}
@@ -345,7 +358,7 @@ export default function PublicBoard() {
       </div>
 
       {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0 px-[11px]">
         {/* Empty state */}
         {totalCount === 0 && !isLoading ? (
           <motion.div
@@ -361,17 +374,6 @@ export default function PublicBoard() {
           </motion.div>
         ) : (
           <div className="relative">
-            {/* Spinner overlay */}
-            {(isLoading || isRefetching) && (
-              <div className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <div className="pointer-events-auto flex items-center gap-2 rounded-xl bg-[var(--vault-panel)]/80 px-4 py-2 shadow-xl backdrop-blur-sm border border-[var(--vault-border)]">
-                  <Loader2 className="h-5 w-5 animate-spin text-[var(--vault-gold)]" />
-                  <span className="text-xs font-medium text-[var(--vault-gold)]">
-                    {isLoading ? 'Loading...' : 'Updating...'}
-                  </span>
-                </div>
-              </div>
-            )}
 
             {/* ── Sectioned View (default "all" category, no search) ── */}
             {!isFiltered && sections.length > 0 && (
@@ -405,7 +407,6 @@ export default function PublicBoard() {
                           onItemClick={handleItemClick}
                           onStatsClick={handleStatsClick}
                           onEdit={handleEditFromCard}
-                          dimmed={dimmed}
                         />
                     </motion.section>
                   );
@@ -421,7 +422,6 @@ export default function PublicBoard() {
                 onItemClick={handleItemClick}
                 onStatsClick={handleStatsClick}
                 onEdit={handleEditFromCard}
-                dimmed={dimmed}
               />
             )}
 
@@ -444,7 +444,6 @@ export default function PublicBoard() {
                   onItemClick={handleItemClick}
                   onStatsClick={handleStatsClick}
                   onEdit={handleEditFromCard}
-                  dimmed={dimmed}
                 />
               </>
             )}

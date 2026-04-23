@@ -11,7 +11,8 @@ import {
   ClipboardCopy, 
   Settings, 
   Trash2,
-  Shield
+  Shield,
+  Menu
 } from 'lucide-react';
 import { AppState } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -49,21 +50,49 @@ export default function MainSidebar() {
       <aside className="h-full w-full flex flex-col">
       
         {/* Top Fixed Area */}
-        <div className="flex shrink-0 items-center border-b border-white/[0.06] h-14 px-4 transition-all">
-          <div className={`flex items-center gap-2 ${state.sidebarOpen ? 'w-full' : 'w-full justify-center'}`}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--vault-gold)] to-[var(--vault-gold-light)]">
-              <Shield className="h-4 w-4 text-[#0a0a0f]" />
-            </div>
+        <div className={`flex shrink-0 items-center border-b border-white/[0.06] h-14 transition-all ${state.sidebarOpen ? 'px-4' : 'px-0 justify-center'}`}>
+          <div className="flex items-center gap-2 w-full">
+            <button
+              onClick={() => dispatch({ type: 'SET_SIDEBAR', open: !state.sidebarOpen })}
+              className={`rounded-lg p-1.5 text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors shrink-0 ${!state.sidebarOpen && 'mx-auto'}`}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            
             {state.sidebarOpen && (
-              <h1 className="vault-heading text-lg font-bold tracking-widest text-[var(--vault-gold)]">
-                VAULT
-              </h1>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--vault-gold)] to-[var(--vault-gold-light)]">
+                  <Shield className="h-4 w-4 text-[#0a0a0f]" />
+                </div>
+                <h1 className="vault-heading text-lg font-bold tracking-widest text-[var(--vault-gold)] truncate">
+                  VAULT
+                </h1>
+              </div>
             )}
           </div>
         </div>
 
         {/* Scrollable Center Area */}
         <div className="flex-1 overflow-y-auto p-4">
+          {/* Logo when collapsed */}
+          {!state.sidebarOpen && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => handleCategoryChange('all')}
+                  className="mb-6 flex w-full items-center justify-center transition-transform hover:scale-105"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--vault-gold)] to-[var(--vault-gold-light)] shadow-lg shadow-[var(--vault-gold)]/20">
+                    <Shield className="h-4 w-4 text-[#0a0a0f]" />
+                  </div>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">
+                Go to Home page
+              </TooltipContent>
+            </Tooltip>
+          )}
+
           {/* Quick Action */}
       {!state.sidebarOpen ? (
         <Tooltip>
