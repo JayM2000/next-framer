@@ -5,12 +5,14 @@ import { useVault } from '@/lib/vault/store';
 import SearchBar from './SearchBar';
 import ThemeToggle from './ThemeToggle';
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs';
-import { Lock, Shield, Menu, Search } from 'lucide-react';
+import { Lock, Shield, Menu, Search, Settings } from 'lucide-react';
+import SettingsModal from './SettingsModal';
 
 export default function Header() {
   const { state, dispatch } = useVault();
   const { isSignedIn } = useUser();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <>
@@ -36,7 +38,7 @@ export default function Header() {
             {/* Left Side: Hamburger, Logo, Search */}
             <div className="flex flex-1 items-center gap-5">
           {/* Hamburger Menu & Logo */}
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 sm:hidden">
             <button
               onClick={() => dispatch({ type: 'SET_SIDEBAR', open: !state.sidebarOpen })}
               className="rounded-lg p-1.5 text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors"
@@ -70,6 +72,13 @@ export default function Header() {
             <Search className="h-5 w-5" />
           </button>
 
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="rounded-lg p-1.5 text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+
           <ThemeToggle />
 
 
@@ -90,6 +99,7 @@ export default function Header() {
       </div>
       )}
     </header>
+    <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Eye, EyeOff, User, Globe } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
@@ -13,6 +14,11 @@ interface Props {
 export default function SettingsModal({ open, onClose }: Props) {
   const { userSettings, updateUserSettings } = useVault();
   const [localProfilePublic, setLocalProfilePublic] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync local state when modal opens or settings load
   useEffect(() => {
@@ -30,10 +36,12 @@ export default function SettingsModal({ open, onClose }: Props) {
     onClose();
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
-        <>
+        <div className="vault-settings-modal-portal">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -169,8 +177,9 @@ export default function SettingsModal({ open, onClose }: Props) {
               </button>
             </div>
           </motion.div>
-        </>
+        </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

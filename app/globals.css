@@ -320,6 +320,7 @@
   --vault-muted: #6b6b70;
   --vault-glass: rgba(0, 0, 0, 0.03);
   --vault-glass-hover: rgba(0, 0, 0, 0.06);
+  --vault-scroll-shadow: rgba(0, 0, 0, 1);
 }
 
 .dark {
@@ -332,7 +333,9 @@
   --vault-muted: #8b8a8e;
   --vault-glass: rgba(255, 255, 255, 0.04);
   --vault-glass-hover: rgba(255, 255, 255, 0.08);
+  --vault-scroll-shadow: rgba(255, 255, 255, 1);
 }
+
 
 /* --- Vault App Background Override --- */
 .vault-app {
