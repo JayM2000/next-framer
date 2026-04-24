@@ -2,7 +2,7 @@
 
 import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, Flame } from 'lucide-react';
+import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, ExternalLink } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -157,6 +157,38 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
           dangerouslySetInnerHTML={{ __html: item.content }}
         />
       </div>
+
+      {/* Extracted URL Links */}
+      {item.extractedUrls && item.extractedUrls.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-2" onClick={(e) => e.stopPropagation()}>
+          {item.extractedUrls.map((link, i) => (
+            <Tooltip key={i}>
+              <TooltipTrigger asChild>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group/link inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    borderColor: `${typeColors[item.type]}30`,
+                    background: `linear-gradient(135deg, ${typeColors[item.type]}08, ${typeColors[item.type]}15)`,
+                    color: typeColors[item.type],
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-70 transition-opacity group-hover/link:opacity-100" />
+                  <span className="max-w-[120px] truncate">{link.label}</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent
+                className="max-w-[300px] break-all border-[var(--vault-border)] bg-[var(--vault-glass)] backdrop-blur-xl text-[var(--vault-text)] shadow-lg font-mono text-[10px]"
+              >
+                <p>{link.url}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      )}
 
       {/* Tags */}
       {item.tags.length > 0 && (

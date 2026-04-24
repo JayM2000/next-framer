@@ -8,9 +8,16 @@ import ItemDetailModal from './ItemDetailModal';
 import EditItemModal from './EditItemModal';
 import {
   Inbox, Loader2, Flame, FileText, KeyRound, Clipboard,
-  Sparkles, Clock,
+  Sparkles, Clock, Link2, User, ListFilter
 } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // ── Section config ────────────────────────────────────────
 interface Section {
@@ -155,10 +162,15 @@ const CardGrid = memo(function CardGrid({
 // ══════════════════════════════════════════════════════════
 
 export default function PublicBoard() {
-  const { state, isLoading, isRefetching } = useVault();
+  const { state, isLoading, isRefetching, currentDbUserId } = useVault();
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Filter state
+  const [filterMyItems, setFilterMyItems] = useState(false);
+  const [filterHasLinks, setFilterHasLinks] = useState(false);
+  const [sortBy, setSortBy] = useState<'trending' | 'newest' | 'oldest'>('trending');
 
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
@@ -191,11 +203,19 @@ export default function PublicBoard() {
       );
     }
 
+    if (filterMyItems && currentDbUserId) {
+      items = items.filter(i => i.userId === currentDbUserId);
+    }
+
+    if (filterHasLinks) {
+      items = items.filter(i => i.extractedUrls && i.extractedUrls.length > 0);
+    }
+
     return items;
-  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags]);
+  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags, filterMyItems, filterHasLinks, currentDbUserId]);
 
   // ── Build sections ──
-  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0);
+  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0) || filterMyItems || filterHasLinks || sortBy !== 'trending';
 
   const sections: Section[] = useMemo(() => {
     if (isFiltered) {
@@ -283,8 +303,15 @@ export default function PublicBoard() {
   // Flat list for filtered view
   const flatSortedItems = useMemo(() => {
     if (!isFiltered) return [];
-    return [...filteredItems].sort((a, b) => (b.copyCount ?? 0) - (a.copyCount ?? 0));
-  }, [filteredItems, isFiltered]);
+    const items = [...filteredItems];
+    if (sortBy === 'trending') {
+      return items.sort((a, b) => (b.copyCount ?? 0) - (a.copyCount ?? 0));
+    } else if (sortBy === 'newest') {
+      return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      return items.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+  }, [filteredItems, isFiltered, sortBy]);
 
   const totalCount = filteredItems.length;
 
@@ -355,6 +382,48 @@ export default function PublicBoard() {
             </motion.span>
           )}
         </h2>
+
+        {/* Custom Filters (Right side) */}
+        <div className="flex items-center gap-2 pr-4 z-20">
+          {currentDbUserId && (
+            <button
+              onClick={() => setFilterMyItems(p => !p)}
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
+                filterMyItems
+                  ? 'border-[var(--vault-gold)]/50 bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
+                  : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-[var(--vault-gold)]/30 hover:text-[var(--vault-text)]'
+              }`}
+            >
+              <User className="h-3 w-3" />
+              My Items
+            </button>
+          )}
+          <button
+            onClick={() => setFilterHasLinks(p => !p)}
+            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
+              filterHasLinks
+                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-emerald-500/30 hover:text-[var(--vault-text)]'
+            }`}
+          >
+            <Link2 className="h-3 w-3" />
+            Has Links
+          </button>
+          
+          <div className="flex items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] pl-2 pr-0.5 py-0.5">
+            <ListFilter className="mr-1 h-3 w-3 text-[var(--vault-muted)]" />
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+              <SelectTrigger className="h-5 border-0 bg-transparent px-1 py-0 text-[10px] font-medium text-[var(--vault-text)] shadow-none focus:ring-0 [&>svg]:h-3 [&>svg]:w-3">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="trending" className="text-xs">Trending</SelectItem>
+                <SelectItem value="newest" className="text-xs">Newest</SelectItem>
+                <SelectItem value="oldest" className="text-xs">Oldest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Scrollable content area */}

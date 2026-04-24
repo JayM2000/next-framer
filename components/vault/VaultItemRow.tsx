@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Eye, EyeOff, Copy, Globe, Trash2, KeyRound,
-  FileText, Pencil, Clipboard, Check, Shield, ExternalLink, ArrowUpRight, RotateCcw
+  FileText, Pencil, Clipboard, Check, Shield, ExternalLink, ArrowUpRight, RotateCcw, Link2
 } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /* ─── Colour palette per type (distinct from public cards) ─── */
 const palette = {
@@ -202,6 +203,38 @@ export default function VaultItemRow({
           />
         )}
       </div>
+
+      {/* ─── Extracted URL Links ─── */}
+      {item.extractedUrls && item.extractedUrls.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pt-1 pb-0.5" onClick={(e) => e.stopPropagation()}>
+          {item.extractedUrls.map((link, i) => (
+            <Tooltip key={i}>
+              <TooltipTrigger asChild>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group/link inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    borderColor: `${p.accent}25`,
+                    background: `linear-gradient(135deg, ${p.accent}06, ${p.accent}12)`,
+                    color: p.accent,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-60 transition-opacity group-hover/link:opacity-100" />
+                  <span className="max-w-[120px] truncate">{link.label}</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent
+                className="max-w-[300px] break-all border-[var(--vault-border)] bg-[var(--vault-glass)] backdrop-blur-xl text-[var(--vault-text)] shadow-lg font-mono text-[10px]"
+              >
+                <p>{link.url}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      )}
 
       {/* ─── Tags ─── */}
       {item.tags.length > 0 && (

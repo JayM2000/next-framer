@@ -4,7 +4,8 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useVault } from '@/lib/vault/store';
 import { Plus, Clipboard, Loader2 } from 'lucide-react';
-import type { VaultItem } from '@/lib/vault/types';
+import type { VaultItem, Tag } from '@/lib/vault/types';
+import TagInput from './TagInput';
 
 const RichEditor = dynamic(() => import('./RichEditor'), { ssr: false });
 
@@ -13,6 +14,7 @@ export default function QuickAdd() {
   const [content, setContent] = useState('');
   const [plainText, setPlainText] = useState('');
   const [title, setTitle] = useState('');
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const handleSave = () => {
     // If stripped plainText is empty, reject
@@ -25,10 +27,10 @@ export default function QuickAdd() {
       id: crypto.randomUUID(),
       type: 'clipboard',
       visibility: 'public',
-      title: title.trim() || 'Quick Snippet',
+      title: title.trim(),
       content,
       plainText,
-      tags: [],
+      tags,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -41,6 +43,7 @@ export default function QuickAdd() {
         setContent('');
         setPlainText('');
         setTitle('');
+        setTags([]);
       }
     });
   };
@@ -67,6 +70,11 @@ export default function QuickAdd() {
             className="vault-input text-xs"
             placeholder="Title (optional)"
           />
+        </div>
+
+        {/* Tags (Optional) */}
+        <div>
+          <TagInput tags={tags} onChange={setTags} />
         </div>
 
         {/* Content (Mandatory) */}

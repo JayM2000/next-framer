@@ -80,8 +80,8 @@ interface VaultContextType {
   isCreating: boolean;
   isRefetching: boolean;
   currentDbUserId: number | null;
-  userSettings: { showProfileOnPublic: boolean } | undefined;
-  updateUserSettings: (showProfileOnPublic: boolean) => void;
+  userSettings: { showProfileOnPublic: boolean; autoTagEnabled: boolean } | undefined;
+  updateUserSettings: (showProfileOnPublic: boolean, autoTagEnabled: boolean) => void;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -394,8 +394,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   });
 
   const updateUserSettings = useCallback(
-    (showProfileOnPublic: boolean) => {
-      updateSettingsMutation.mutate({ showProfileOnPublic });
+    (showProfileOnPublic: boolean, autoTagEnabled: boolean) => {
+      updateSettingsMutation.mutate({ showProfileOnPublic, autoTagEnabled });
     },
     [updateSettingsMutation]
   );

@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useVault } from '@/lib/vault/store';
 import { Zap, X, Plus, Loader2 } from 'lucide-react';
-import type { VaultItem } from '@/lib/vault/types';
+import type { VaultItem, Tag } from '@/lib/vault/types';
+import TagInput from './TagInput';
 
 const RichEditor = dynamic(() => import('./RichEditor'), { ssr: false });
 
@@ -15,6 +16,7 @@ export default function MobileQuickAdd() {
   const [content, setContent] = useState('');
   const [plainText, setPlainText] = useState('');
   const [title, setTitle] = useState('');
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const isContentEmpty = !plainText.trim() && content.replace(/<[^>]*>?/gm, '').trim() === '';
 
@@ -31,7 +33,7 @@ export default function MobileQuickAdd() {
       title: title.trim() || 'Quick Snippet',
       content,
       plainText,
-      tags: [],
+      tags,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -44,6 +46,7 @@ export default function MobileQuickAdd() {
         setContent('');
         setPlainText('');
         setTitle('');
+        setTags([]);
       },
       onSettled: () => {
         setOpen(false);
@@ -127,6 +130,11 @@ export default function MobileQuickAdd() {
                   className="vault-input text-xs"
                   placeholder="Title (optional)"
                 />
+
+                {/* Tags (optional) */}
+                <div>
+                  <TagInput tags={tags} onChange={setTags} />
+                </div>
 
                 {/* Content (mandatory) */}
                 <div className="min-h-[120px]">

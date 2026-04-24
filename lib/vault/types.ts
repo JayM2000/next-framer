@@ -26,6 +26,8 @@ export interface VaultItem {
   password?: string;
   // Image support:
   images?: string[];     // base64 data URLs
+  // Extracted clickable URLs from content:
+  extractedUrls?: { url: string; label: string }[];
   // Owner info (populated on public items):
   ownerName?: string;         // author display name (from DB join)
   ownerShowProfile?: boolean; // whether owner enabled public profile visibility
