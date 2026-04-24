@@ -129,7 +129,11 @@ export default function CreateItemModal() {
                 {TYPE_TABS.map(({ type, icon: Icon, label }) => (
                   <button
                     key={type}
-                    onClick={() => setItemType(type)}
+                    onClick={() => {
+                      setItemType(type);
+                      // Passwords are always private — force it
+                      if (type === 'password') setVisibility('private');
+                    }}
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
                       itemType === type
                         ? 'border-[var(--vault-gold)] bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
@@ -141,32 +145,41 @@ export default function CreateItemModal() {
                 ))}
               </div>
 
-              {/* Visibility Toggle */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-[var(--vault-muted)]">Visibility</span>
-                <div className="flex rounded-lg border border-[var(--vault-border)] p-0.5">
-                  <button
-                    onClick={() => setVisibility('public')}
-                    className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs font-medium transition-all ${
-                      visibility === 'public'
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'text-[var(--vault-muted)]'
-                    }`}
-                  >
-                    <Globe className="h-3 w-3" /> Public
-                  </button>
-                  <button
-                    onClick={() => setVisibility('private')}
-                    className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs font-medium transition-all ${
-                      visibility === 'private'
-                        ? 'bg-[var(--vault-gold)]/20 text-[var(--vault-gold)]'
-                        : 'text-[var(--vault-muted)]'
-                    }`}
-                  >
-                    <Lock className="h-3 w-3" /> Private
-                  </button>
+              {/* Visibility Toggle — hidden for passwords (always private) */}
+              {itemType === 'password' ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--vault-muted)]">Visibility</span>
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--vault-gold)]/20 bg-[var(--vault-gold)]/10 px-3 py-1 text-xs font-medium text-[var(--vault-gold)]">
+                    <Lock className="h-3 w-3" /> Always Private
+                  </span>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--vault-muted)]">Visibility</span>
+                  <div className="flex rounded-lg border border-[var(--vault-border)] p-0.5">
+                    <button
+                      onClick={() => setVisibility('public')}
+                      className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                        visibility === 'public'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'text-[var(--vault-muted)]'
+                      }`}
+                    >
+                      <Globe className="h-3 w-3" /> Public
+                    </button>
+                    <button
+                      onClick={() => setVisibility('private')}
+                      className={`flex items-center gap-1 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                        visibility === 'private'
+                          ? 'bg-[var(--vault-gold)]/20 text-[var(--vault-gold)]'
+                          : 'text-[var(--vault-muted)]'
+                      }`}
+                    >
+                      <Lock className="h-3 w-3" /> Private
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Body */}

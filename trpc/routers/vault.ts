@@ -13,7 +13,7 @@ const tagSchema = z.object({
 const createItemSchema = z.object({
   type: z.enum(["password", "note", "clipboard"]),
   visibility: z.enum(["public", "private"]).default("private"),
-  title: z.string().min(1).max(500),
+  title: z.string().max(500).default(""),
   content: z.string().default(""),
   plainText: z.string().default(""),
   siteUrl: z.string().max(2048).optional(),
@@ -73,6 +73,7 @@ interface ItemTagRow {
 interface UserSettingsRow {
   user_id: number;
   show_profile_on_public: boolean;
+  auto_tag_enabled: boolean;
 }
 
 // Extended row returned by the public items query (joins user + settings)
@@ -84,6 +85,52 @@ interface PublicItemRow extends VaultItemRow {
 interface ActivityRow {
   week_start: string;
   count: string; // bigint comes back as string
+}
+
+// ── Helper: extract clickable URLs from content ───────────
+
+const URL_REGEX = /https?:\/\/[^\s<>"'`,;)\]]+|www\.[^\s<>"'`,;)\]]+/gi;
+
+function extractUrls(plainText: string): { url: string; label: string }[] {
+  if (!plainText || plainText.trim().length < 5) return [];
+
+  const matches = plainText.match(URL_REGEX);
+  if (!matches) return [];
+
+  const seen = new Set<string>();
+  const results: { url: string; label: string }[] = [];
+
+  for (const raw of matches) {
+    // Normalise: add protocol if missing
+    const url = raw.startsWith('www.') ? `https://${raw}` : raw;
+
+    // Strip trailing punctuation that may have been captured
+    const cleaned = url.replace(/[.,;:!?)\]]+$/, '');
+
+    if (seen.has(cleaned.toLowerCase())) continue;
+    seen.add(cleaned.toLowerCase());
+
+    // Build friendly label from URL
+    try {
+      const parsed = new URL(cleaned);
+      const host = parsed.hostname.replace(/^www\./, '');
+      // Take first meaningful path segment (skip empty)
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      const firstSeg = segments[0];
+      const label = firstSeg && firstSeg.length <= 24
+        ? `${host}/${firstSeg}`
+        : host;
+      results.push({ url: cleaned, label });
+    } catch {
+      // Fallback: just show truncated URL
+      const label = cleaned.replace(/^https?:\/\//, '').slice(0, 30);
+      results.push({ url: cleaned, label });
+    }
+
+    if (results.length >= 5) break;
+  }
+
+  return results;
 }
 
 // ── Helper: format DB row → client shape ──────────────────
@@ -109,6 +156,7 @@ function formatItem(
       label: t.label,
       color: t.color,
     })),
+    extractedUrls: extractUrls(row.plain_text),
     copyCount: row.copy_count ?? 0,
     isDeleted: row.is_deleted,
     createdAt: row.created_at.toISOString(),
@@ -216,6 +264,144 @@ async function upsertTagsForItem(
   return resolvedTags;
 }
 
+// ── Helper: extract auto-tags from content ────────────────
+
+const STOPWORDS = new Set([
+  'the','be','to','of','and','a','in','that','have','i','it','for','not','on','with',
+  'he','as','you','do','at','this','but','his','by','from','they','we','her','she',
+  'or','an','will','my','one','all','would','there','their','what','so','up','out',
+  'if','about','who','get','which','go','me','when','make','can','like','time','no',
+  'just','him','know','take','people','into','year','your','good','some','could',
+  'them','see','other','than','then','now','look','only','come','its','over','think',
+  'also','back','after','use','two','how','our','work','first','well','way','even',
+  'new','want','because','any','these','give','day','most','us','is','are','was',
+  'were','been','has','had','did','does','may','might','shall','should','must',
+  'am','being','having','doing','very','really','here','where','much','many',
+  'such','each','every','both','few','more','most','own','same','still','too',
+  'before','through','between','those','after','above','below','since',
+  'while','during','without','within','along','against','upon','already','yet',
+  'again','once','under','further','never','always','often','sometimes','usually',
+  'however','therefore','thus','although','though','unless','except','rather',
+  'quite','almost','enough','perhaps','probably','actually','basically',
+  'simply','clearly','obviously','definitely','certainly','absolutely',
+  'test','snippet','quick','item','note','info','adding','added','put',
+]);
+
+const AUTO_TAG_COLORS = ['#8b5cf6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#f97316', '#10b981'];
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  'code': ['function', 'const', 'let', 'var', 'return', 'import', 'export', 'class', 'interface', 'async', 'await', 'console', 'log', 'error', 'try', 'catch', 'throw', 'module', 'require', 'npm', 'yarn', 'node', 'react', 'next', 'typescript', 'javascript', 'python', 'java', 'html', 'css', 'api', 'endpoint', 'http', 'request', 'response', 'json', 'xml', 'sql', 'query', 'database', 'schema', 'migration'],
+  'link': ['http://', 'https://', 'www.', '.com', '.org', '.net', '.io', 'url', 'website'],
+  'password': ['password', 'login', 'credential', 'secret', 'token', 'auth', 'apikey'],
+  'recipe': ['ingredient', 'cook', 'bake', 'recipe', 'tablespoon', 'teaspoon', 'cup', 'oven', 'preheat'],
+  'tutorial': ['step', 'tutorial', 'guide', 'howto', 'instruction', 'learn', 'example', 'walkthrough'],
+  'config': ['config', 'configuration', 'setting', 'environment', 'env', 'variable', 'port', 'host', 'server'],
+  'personal': ['birthday', 'address', 'phone', 'email', 'contact', 'account', 'profile'],
+  'finance': ['price', 'cost', 'payment', 'invoice', 'budget', 'expense', 'salary', 'tax', 'bank', 'credit', 'debit', 'money', 'dollar', 'amount'],
+  'idea': ['idea', 'brainstorm', 'concept', 'thought', 'plan', 'proposal', 'suggestion', 'draft'],
+};
+
+function extractAutoTags(plainText: string): { label: string; color: string }[] {
+  if (!plainText || plainText.trim().length < 5) return [];
+
+  const text = plainText.toLowerCase();
+  const tags: { label: string; score: number }[] = [];
+
+  // 1. Check category keywords
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    const matchCount = keywords.filter(kw => text.includes(kw)).length;
+    if (matchCount >= 2 || (category === 'link' && matchCount >= 1)) {
+      tags.push({ label: category, score: matchCount * 10 });
+    }
+  }
+
+  // 2. Extract top frequent meaningful words as additional tags
+  const words = text
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 3 && !STOPWORDS.has(w));
+
+  const freq = new Map<string, number>();
+  for (const word of words) {
+    freq.set(word, (freq.get(word) || 0) + 1);
+  }
+
+  // Sort by frequency, take top words that appear 2+ times
+  const topWords = [...freq.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([word, count]) => ({ label: word, score: count }));
+
+  tags.push(...topWords);
+
+  // 3. Deduplicate and take top 3
+  const seen = new Set<string>();
+  const uniqueTags = tags
+    .sort((a, b) => b.score - a.score)
+    .filter(t => {
+      if (seen.has(t.label)) return false;
+      seen.add(t.label);
+      return true;
+    })
+    .slice(0, 3);
+
+  // If no tags found, derive from first significant word
+  if (uniqueTags.length === 0 && words.length > 0) {
+    const sorted = [...freq.entries()].sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) {
+      uniqueTags.push({ label: sorted[0][0], score: sorted[0][1] });
+    }
+  }
+
+  return uniqueTags.map((t, i) => ({
+    label: t.label,
+    color: AUTO_TAG_COLORS[i % AUTO_TAG_COLORS.length],
+  }));
+}
+
+// ── Helper: extract auto-title from content ───────────────
+
+function extractAutoTitle(plainText: string): string {
+  if (!plainText || plainText.trim().length < 3) return 'Quick Snippet';
+
+  const text = plainText.trim();
+
+  // 1. Use the first line as the primary candidate
+  const firstLine = text.split(/[\n\r]+/)[0].trim();
+
+  // If the first line is short enough and meaningful, use it directly
+  if (firstLine.length >= 3 && firstLine.length <= 60) {
+    return firstLine.charAt(0).toUpperCase() + firstLine.slice(1);
+  }
+
+  // 2. If first line is too long, extract meaningful words
+  const words = firstLine
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 3 && !STOPWORDS.has(w.toLowerCase()));
+
+  if (words.length > 0) {
+    // Take up to 5 words to form a title
+    const titleWords = words.slice(0, 5);
+    const title = titleWords
+      .map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)
+      .join(' ');
+    return title.length > 60 ? title.substring(0, 57) + '...' : title;
+  }
+
+  // 3. If first line was too short or had no meaningful words, try category detection
+  const lowerText = text.toLowerCase();
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    const matchCount = keywords.filter(kw => lowerText.includes(kw)).length;
+    if (matchCount >= 2 || (category === 'link' && matchCount >= 1)) {
+      return category.charAt(0).toUpperCase() + category.slice(1) + ' Snippet';
+    }
+  }
+
+  return 'Quick Snippet';
+}
+
 // ══════════════════════════════════════════════════════════
 //  VAULT ROUTER
 // ══════════════════════════════════════════════════════════
@@ -312,10 +498,35 @@ export const vaultRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       // Optionally resolve the user — null if not logged in
       const userId = await optionalUserId(ctx.clerkUserId);
-      console.log(userId, 'llmmm✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️✔️');
 
-      // Anonymous users can only create public items
-      const visibility = userId ? input.visibility : "public";
+      // Passwords are always private; anonymous users can only create public items
+      const visibility = input.type === "password"
+        ? "private"
+        : userId ? input.visibility : "public";
+
+      // Check auto-tag/auto-title setting
+      let autoTagEnabled = true; // default for anonymous
+      if (userId) {
+        const settingsRows = await query<UserSettingsRow>(
+          `SELECT * FROM user_settings WHERE user_id = $1`,
+          [userId]
+        );
+        if (settingsRows.length > 0) {
+          autoTagEnabled = settingsRows[0].auto_tag_enabled;
+        }
+      }
+
+      // Determine final tags: user-provided, or auto-generated
+      let finalTags = input.tags ?? [];
+      if (finalTags.length === 0 && autoTagEnabled) {
+        finalTags = extractAutoTags(input.plainText);
+      }
+
+      // Determine final title: user-provided, or auto-generated
+      const titleIsEmpty = !input.title.trim() || input.title.trim() === 'Quick Snippet';
+      const finalTitle = (titleIsEmpty && autoTagEnabled)
+        ? extractAutoTitle(input.plainText)
+        : (input.title.trim() || 'Quick Snippet');
 
       const result = await withTransaction(async (client) => {
         // Insert the item (user_id may be NULL for anonymous)
@@ -329,7 +540,7 @@ export const vaultRouter = createTRPCRouter({
             userId,
             input.type,
             visibility,
-            input.title,
+            finalTitle,
             input.content,
             input.plainText,
             input.siteUrl ?? null,
@@ -345,7 +556,7 @@ export const vaultRouter = createTRPCRouter({
         const tags = await upsertTagsForItem(
           userId,
           item.id,
-          input.tags ?? [],
+          finalTags,
           client
         );
 
@@ -538,6 +749,26 @@ export const vaultRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = await resolveUserId(ctx.clerkUserId!);
 
+      // Passwords can never be made public — block the toggle
+      const existing = await query<VaultItemRow>(
+        `SELECT type, visibility FROM vault_items WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE`,
+        [input.id, userId]
+      );
+
+      if (!existing.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Item not found",
+        });
+      }
+
+      if (existing[0].type === "password" && existing[0].visibility === "private") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Password items must remain private",
+        });
+      }
+
       const result = await query<VaultItemRow>(
         `UPDATE vault_items
          SET visibility = CASE WHEN visibility = 'public' THEN 'private' ELSE 'public' END,
@@ -619,7 +850,10 @@ export const vaultRouter = createTRPCRouter({
       [userId]
     );
 
-    if (rows.length > 0) return { showProfileOnPublic: rows[0].show_profile_on_public };
+    if (rows.length > 0) return {
+      showProfileOnPublic: rows[0].show_profile_on_public,
+      autoTagEnabled: rows[0].auto_tag_enabled,
+    };
 
     // Row already existed — fetch it
     const existing = await query<UserSettingsRow>(
@@ -629,6 +863,7 @@ export const vaultRouter = createTRPCRouter({
 
     return {
       showProfileOnPublic: existing[0]?.show_profile_on_public ?? false,
+      autoTagEnabled: existing[0]?.auto_tag_enabled ?? true,
     };
   }),
 
@@ -637,21 +872,22 @@ export const vaultRouter = createTRPCRouter({
     .input(
       z.object({
         showProfileOnPublic: z.boolean(),
+        autoTagEnabled: z.boolean(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const userId = await resolveUserId(ctx.clerkUserId!);
 
       await query(
-        `INSERT INTO user_settings (user_id, show_profile_on_public, updated_at)
-         VALUES ($1, $2, CURRENT_TIMESTAMP)
+        `INSERT INTO user_settings (user_id, show_profile_on_public, auto_tag_enabled, updated_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
          ON CONFLICT (user_id)
-         DO UPDATE SET show_profile_on_public = $2, updated_at = CURRENT_TIMESTAMP`,
-        [userId, input.showProfileOnPublic]
+         DO UPDATE SET show_profile_on_public = $2, auto_tag_enabled = $3, updated_at = CURRENT_TIMESTAMP`,
+        [userId, input.showProfileOnPublic, input.autoTagEnabled]
       );
 
       (global as any).vaultEventEmitter?.emit('vault:update');
-      return { success: true, showProfileOnPublic: input.showProfileOnPublic };
+      return { success: true, showProfileOnPublic: input.showProfileOnPublic, autoTagEnabled: input.autoTagEnabled };
     }),
 
   // ── Get a user's public profile (no auth — anyone can hover) ──

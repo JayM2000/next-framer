@@ -38,7 +38,7 @@ export default function TagInput({ tags, onChange }: Props) {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--vault-border)] bg-[var(--vault-glass)] px-2 py-1.5 focus-within:border-[var(--vault-gold)] focus-within:ring-1 focus-within:ring-[var(--vault-gold)] transition-colors cursor-text"
+      className="vault-input !h-auto min-h-[2.25rem] py-1.5 flex flex-wrap items-center gap-1.5 cursor-text"
       onClick={() => inputRef.current?.focus()}
     >
       {tags.map(tag => (
@@ -61,7 +61,8 @@ export default function TagInput({ tags, onChange }: Props) {
         onChange={e => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={addTag}
-        className="min-w-[60px] flex-1 bg-transparent text-xs text-[var(--vault-text)] placeholder:text-[var(--vault-muted)] outline-none"
+        style={{ outline: 'none' }}
+        className="min-w-[60px] flex-1 bg-transparent text-xs text-[var(--vault-text)] placeholder:text-[var(--vault-muted)]"
       />
     </div>
   );

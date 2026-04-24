@@ -1,12 +1,12 @@
-# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-23)
+# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-24)
 
 ## Corpus Check
-- 81 files · ~67,030 words
+- 81 files · ~68,174 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 190 nodes · 129 edges · 67 communities detected
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
+- 192 nodes · 132 edges · 67 communities detected
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -82,17 +82,15 @@
 1. `query()` - 7 edges
 2. `POST()` - 5 edges
 3. `useVault()` - 4 edges
-4. `handleKeyDown()` - 3 edges
-5. `withTransaction()` - 3 edges
-6. `getQueryClient()` - 3 edges
-7. `Page()` - 2 edges
-8. `DashboardContent()` - 2 edges
-9. `GET()` - 2 edges
+4. `GET()` - 3 edges
+5. `handleKeyDown()` - 3 edges
+6. `withTransaction()` - 3 edges
+7. `getQueryClient()` - 3 edges
+8. `Page()` - 2 edges
+9. `DashboardContent()` - 2 edges
 10. `useSidebar()` - 2 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `GET()` --calls--> `query()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\app\api\vehicle-parts\list\route.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
 - `query()` --calls--> `migrate()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\migrate-users.mjs
 - `query()` --calls--> `runSchemas()`  [INFERRED]
@@ -101,12 +99,14 @@
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
 - `DashboardContent()` --calls--> `useSidebar()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\app\(dashboard)\layout.tsx → C:\Users\misal\OneDrive\Documents\next-framer\components\sidebar-context.tsx
+- `POST()` --calls--> `query()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\app\api\vehicle-parts\bulk\route.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.12
-Nodes (7): query(), withTransaction(), migrate(), GET(), POST(), runSchemas(), upsertTagsForItem()
+Cohesion: 0.11
+Nodes (8): query(), withTransaction(), migrate(), GET(), POST(), runSchemas(), extractAutoTags(), upsertTagsForItem()
 
 ### Community 1 - "Community 1"
 Cohesion: 0.15
@@ -477,5 +477,7 @@ _Questions this graph is uniquely positioned to answer:_
   _`POST()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `useVault()` (e.g. with `Dashboard()` and `Toast()`) actually correct?**
   _`useVault()` has 3 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 2 inferred relationships involving `GET()` (e.g. with `query()` and `extractAutoTags()`) actually correct?**
+  _`GET()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._

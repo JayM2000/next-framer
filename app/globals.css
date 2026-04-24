@@ -418,7 +418,8 @@
 .vault-input::placeholder {
   color: var(--vault-muted);
 }
-.vault-input:focus {
+.vault-input:focus,
+.vault-input:focus-within {
   border-color: var(--vault-gold);
   box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
 }

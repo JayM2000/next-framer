@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Eye, EyeOff, User, Globe } from 'lucide-react';
+import { X, Shield, Eye, EyeOff, User, Globe, Sparkles } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 
 interface Props {
@@ -14,25 +14,26 @@ interface Props {
 export default function SettingsModal({ open, onClose }: Props) {
   const { userSettings, updateUserSettings } = useVault();
   const [localProfilePublic, setLocalProfilePublic] = useState(false);
+  const [localAutoTag, setLocalAutoTag] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Sync local state when modal opens or settings load
   useEffect(() => {
     if (open) {
       setLocalProfilePublic(userSettings?.showProfileOnPublic ?? false);
+      setLocalAutoTag(userSettings?.autoTagEnabled ?? true);
     }
-  }, [open, userSettings?.showProfileOnPublic]);
+  }, [open, userSettings?.showProfileOnPublic, userSettings?.autoTagEnabled]);
 
   const handleToggle = () => {
     setLocalProfilePublic(!localProfilePublic);
   };
 
   const handleApply = () => {
-    updateUserSettings(localProfilePublic);
+    updateUserSettings(localProfilePublic, localAutoTag);
     onClose();
   };
 
@@ -157,6 +158,45 @@ export default function SettingsModal({ open, onClose }: Props) {
                       </span>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Auto Tag */}
+              <div className="rounded-xl border border-[var(--vault-border)] bg-[var(--vault-glass)] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--vault-text)]">
+                      <Sparkles className={`h-3.5 w-3.5 ${localAutoTag ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
+                      Auto Tag
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--vault-muted)]">
+                      Automatically generate tags from your content when you don&apos;t add any manually.
+                      Tags are extracted from keywords in your snippets.
+                    </p>
+                  </div>
+
+                  {/* Toggle switch */}
+                  <button
+                    onClick={() => setLocalAutoTag(!localAutoTag)}
+                    className={`relative mt-0.5 flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-200 ${
+                      localAutoTag
+                        ? 'border-[var(--vault-gold)] bg-[var(--vault-gold)]'
+                        : 'border-[var(--vault-border)] bg-[var(--vault-glass)]'
+                    }`}
+                  >
+                    <motion.div
+                      layout
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className={`rounded-full shadow-sm ${
+                        localAutoTag ? 'bg-[#0a0a0f]' : 'bg-[var(--vault-muted)]'
+                      }`}
+                      style={{
+                        width: 18,
+                        height: 18,
+                        marginLeft: localAutoTag ? 21 : 2,
+                      }}
+                    />
+                  </button>
                 </div>
               </div>
             </div>
