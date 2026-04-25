@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Eye, EyeOff, Copy, Globe, Trash2, KeyRound,
-  FileText, Pencil, Clipboard, Check, Shield, ExternalLink, ArrowUpRight, RotateCcw, Link2
+  FileText, Pencil, Clipboard, Check, Shield, ExternalLink, ArrowUpRight, RotateCcw
 } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';

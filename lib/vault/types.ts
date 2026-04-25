@@ -44,7 +44,7 @@ export interface AppState {
   items: VaultItem[];
   searchQuery: string;
   selectedTags: string[];
-  toast: { message: string; visible: boolean };
+  toast: { message: string; visible: boolean; type: 'success' | 'error' | 'warning' };
   activeTab: 'dashboard' | 'vault' | 'create';
   activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
   drawerOpen: boolean;

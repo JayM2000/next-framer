@@ -1,11 +1,11 @@
 # Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-04-25)
 
 ## Corpus Check
-- 81 files · ~69,715 words
+- 81 files · ~71,183 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 192 nodes · 132 edges · 69 communities detected
+- 194 nodes · 135 edges · 69 communities detected
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -115,12 +115,12 @@ Cohesion: 0.18
 Nodes (5): Dashboard(), useSocket(), useVault(), VaultProvider(), VaultItemRow()
 
 ### Community 2 - "Community 2"
-Cohesion: 0.22
-Nodes (5): GET(), extractAutoTags(), extractUrls(), formatItem(), upsertTagsForItem()
+Cohesion: 0.2
+Nodes (2): formatDate(), formatTime()
 
 ### Community 3 - "Community 3"
 Cohesion: 0.22
-Nodes (0): 
+Nodes (5): GET(), extractAutoTags(), extractUrls(), formatItem(), upsertTagsForItem()
 
 ### Community 4 - "Community 4"
 Cohesion: 0.25
@@ -483,9 +483,9 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `query()` connect `Community 0` to `Community 2`?**
+- **Why does `query()` connect `Community 0` to `Community 3`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `upsertTagsForItem()` connect `Community 2` to `Community 0`?**
+- **Why does `upsertTagsForItem()` connect `Community 3` to `Community 0`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `query()` (e.g. with `POST()` and `GET()`) actually correct?**
   _`query()` has 5 INFERRED edges - model-reasoned connections that need verification._

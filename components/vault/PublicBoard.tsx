@@ -432,7 +432,7 @@ export default function PublicBoard() {
           
           <div className="flex shrink-0 items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] pl-2 pr-0.5 py-0.5">
             <ListFilter className="mr-1 h-3 w-3 text-[var(--vault-muted)]" />
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'trending' | 'newest' | 'oldest')}>
               <SelectTrigger className="h-5 border-0 bg-transparent px-1 py-0 text-[10px] font-medium text-[var(--vault-text)] shadow-none focus:ring-0 [&>svg]:h-3 [&>svg]:w-3">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
