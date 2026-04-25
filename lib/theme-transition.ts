@@ -32,11 +32,6 @@ export function performDiagonalThemeSwitch(
 ): Promise<void> {
   // Skip if the overlay is already running
   if (document.getElementById('theme-sweep-overlay')) return Promise.resolve();
-  // Respect reduced-motion
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    setTheme(nextTheme);
-    return Promise.resolve();
-  }
 
   return new Promise<void>((resolve) => {
     const sweepColor = THEME_BG[nextTheme] ?? THEME_BG.dark;
@@ -45,6 +40,10 @@ export function performDiagonalThemeSwitch(
     const overlay = document.createElement('div');
     overlay.id = 'theme-sweep-overlay';
     overlay.setAttribute('aria-hidden', 'true');
+
+    const initialClipPath = nextTheme === 'dark'
+      ? 'circle(0% at 100% 0%)'   // top-right
+      : 'circle(0% at 0% 100%)';  // bottom-left
 
     Object.assign(overlay.style, {
       position: 'fixed',
@@ -55,14 +54,9 @@ export function performDiagonalThemeSwitch(
       pointerEvents: 'none',
       backgroundColor: sweepColor,
       opacity: '1',
-      willChange: 'clip-path, opacity',
-      // Start from a zero-size quad at the appropriate corner
-      // MUST use 4 vertices to match the target polygon (CSS can only
-      // interpolate clip-path when vertex counts are equal).
-      clipPath:
-        nextTheme === 'dark'
-          ? 'polygon(100% 0%, 100% 0%, 100% 0%, 100% 0%)'   // top-right
-          : 'polygon(0% 100%, 0% 100%, 0% 100%, 0% 100%)',   // bottom-left
+      willChange: 'clip-path, -webkit-clip-path, opacity',
+      clipPath: initialClipPath,
+      WebkitClipPath: initialClipPath,
     });
 
     document.body.appendChild(overlay);
@@ -70,12 +64,20 @@ export function performDiagonalThemeSwitch(
     // Force reflow so the browser registers the initial clip-path
     void overlay.offsetHeight;
 
-    // ── Phase 1: Expand diagonally to full coverage ──
+    // ── Phase 1: Expand circularly to full coverage ──
     requestAnimationFrame(() => {
-      Object.assign(overlay.style, {
-        transition: `clip-path ${SWEEP_DURATION}ms cubic-bezier(0.65, 0, 0.35, 1)`,
-        clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-      });
+      // Use setTimeout as a microtask fallback to ensure the reflow is painted
+      setTimeout(() => {
+        const finalClipPath = nextTheme === 'dark'
+          ? 'circle(150% at 100% 0%)'
+          : 'circle(150% at 0% 100%)';
+          
+        Object.assign(overlay.style, {
+          transition: `clip-path ${SWEEP_DURATION}ms cubic-bezier(0.65, 0, 0.35, 1), -webkit-clip-path ${SWEEP_DURATION}ms cubic-bezier(0.65, 0, 0.35, 1)`,
+          clipPath: finalClipPath,
+          WebkitClipPath: finalClipPath,
+        });
+      }, 10);
     });
 
     // Flip theme halfway through the sweep (overlay mostly covers the viewport)
@@ -84,8 +86,10 @@ export function performDiagonalThemeSwitch(
     }, THEME_FLIP_AT);
 
     // ── Phase 2: Fade out to reveal the new theme ──
-    const onExpanded = () => {
-      overlay.removeEventListener('transitionend', onExpanded);
+    const onExpanded = (e: TransitionEvent) => {
+      // Only trigger on the clip-path transition, not opacity or others
+      if (e.propertyName !== 'clip-path' && e.propertyName !== '-webkit-clip-path') return;
+      overlay.removeEventListener('transitionend', onExpanded as any);
 
       Object.assign(overlay.style, {
         transition: `opacity ${FADE_DURATION}ms ease-out`,

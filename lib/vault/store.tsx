@@ -19,7 +19,7 @@ import { useSocket } from '@/components/providers/SocketProvider';
 interface UIState {
   searchQuery: string;
   selectedTags: string[];
-  toast: { message: string; visible: boolean };
+  toast: { message: string; visible: boolean; type: 'success' | 'error' | 'warning' };
   activeTab: 'dashboard' | 'vault' | 'create';
   activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
   drawerOpen: boolean;
@@ -29,7 +29,7 @@ interface UIState {
 type UIAction =
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'SET_SELECTED_TAGS'; tags: string[] }
-  | { type: 'SHOW_TOAST'; message: string }
+  | { type: 'SHOW_TOAST'; message: string; toastType?: 'success' | 'error' | 'warning' }
   | { type: 'HIDE_TOAST' }
   | { type: 'SET_TAB'; tab: UIState['activeTab'] }
   | { type: 'SET_DRAWER'; open: boolean }
@@ -39,7 +39,7 @@ type UIAction =
 const initialUIState: UIState = {
   searchQuery: '',
   selectedTags: [],
-  toast: { message: '', visible: false },
+  toast: { message: '', visible: false, type: 'success' },
   activeTab: 'dashboard',
   activeCategory: 'all',
   drawerOpen: false,
@@ -53,7 +53,7 @@ function uiReducer(state: UIState, action: UIAction): UIState {
     case 'SET_SELECTED_TAGS':
       return { ...state, selectedTags: action.tags };
     case 'SHOW_TOAST':
-      return { ...state, toast: { message: action.message, visible: true } };
+      return { ...state, toast: { message: action.message, visible: true, type: action.toastType || 'success' } };
     case 'HIDE_TOAST':
       return { ...state, toast: { ...state.toast, visible: false } };
     case 'SET_TAB':
@@ -74,7 +74,7 @@ function uiReducer(state: UIState, action: UIAction): UIState {
 interface VaultContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-  showToast: (message: string) => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'warning') => void;
   copyToClipboard: (text: string, label?: string) => void;
   isLoading: boolean;
   isCreating: boolean;
@@ -163,6 +163,13 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const toggleImportantMutation = trpc.vault.toggleImportant.useMutation({
+    onSuccess: () => {
+      utils.vault.getItems.invalidate();
+      utils.vault.getPublicItems.invalidate();
+    },
+  });
+
   const recoverMutation = trpc.vault.recoverItem.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
@@ -208,10 +215,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [userItems, publicItems]);
 
   // ── Toast helpers ──
-  const showToast = useCallback((message: string) => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
-    uiDispatch({ type: 'SHOW_TOAST', message });
-    toastTimeout.current = setTimeout(() => uiDispatch({ type: 'HIDE_TOAST' }), 2500);
+    uiDispatch({ type: 'SHOW_TOAST', message, toastType: type });
+    toastTimeout.current = setTimeout(() => uiDispatch({ type: 'HIDE_TOAST' }), 5000);
   }, []);
 
   const copyToClipboard = useCallback(
@@ -245,6 +252,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
               password: item.password,
               images: item.images,
               tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
+              isImportant: item.isImportant,
             },
             {
               onSuccess: () => action.onSuccess?.(),
@@ -270,6 +278,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
               password: item.password,
               images: item.images,
               tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
+              isImportant: item.isImportant,
             },
             {
               onSuccess: () => action.onSuccess?.(),
@@ -290,6 +299,14 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
         case 'TOGGLE_VISIBILITY':
           toggleVisibilityMutation.mutate({ id: action.id }, {
+            onSuccess: () => action.onSuccess?.(),
+            onError: (error) => action.onError?.(error),
+            onSettled: () => action.onSettled?.(),
+          });
+          break;
+
+        case 'TOGGLE_IMPORTANT':
+          toggleImportantMutation.mutate({ id: action.id }, {
             onSuccess: () => action.onSuccess?.(),
             onError: (error) => action.onError?.(error),
             onSettled: () => action.onSettled?.(),
@@ -348,7 +365,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           break;
       }
     },
-    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation, recoverMutation, deletePermanentMutation, incrementCopyCountMutation]
+    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation, toggleImportantMutation, recoverMutation, deletePermanentMutation, incrementCopyCountMutation]
   );
 
   // ── Compose the full AppState shape ──

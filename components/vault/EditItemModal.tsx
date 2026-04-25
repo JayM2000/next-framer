@@ -436,17 +436,23 @@ export default function EditItemModal({ item, onClose }: Props) {
               transition={{ delay: 0.35 }}
               className="flex shrink-0 items-center justify-between border-t border-[var(--vault-border)] px-5 py-3 sm:px-6"
             >
-              <div className="flex items-center gap-2 text-[10px] text-[var(--vault-muted)]">
-                <Shield className="h-3 w-3" />
-                <span>Only owners can edit items</span>
-              </div>
+              <motion.div 
+                className="flex items-center gap-1.5 text-[10px] text-[var(--vault-muted)]"
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <Shield className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-[var(--vault-gold)]" />
+                <span className="hidden sm:inline">Only owners can edit items</span>
+                <span className="sm:hidden">Owner only</span>
+              </motion.div>
               <div className="flex items-center gap-2">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={onClose}
                   disabled={isSaving}
-                  className="rounded-lg border border-[var(--vault-border)] px-4 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-border)] px-3 py-2 text-xs font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] disabled:opacity-50"
                 >
+                  <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                   Cancel
                 </motion.button>
                 <motion.button
@@ -454,12 +460,20 @@ export default function EditItemModal({ item, onClose }: Props) {
                   whileHover={{ scale: 1.02 }}
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="vault-btn-primary disabled:opacity-50"
+                  className="vault-btn-primary disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {isSaving ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                    <>
+                      <Loader2 className="h-5 w-5 sm:h-4 sm:w-4 animate-spin" />
+                      <span className="sm:hidden">Saving</span>
+                      <span className="hidden sm:inline">Saving...</span>
+                    </>
                   ) : (
-                    <><Save className="h-4 w-4" /> Save Changes</>
+                    <>
+                      <Save className="h-5 w-5 sm:h-4 sm:w-4" />
+                      <span className="sm:hidden">Save</span>
+                      <span className="hidden sm:inline">Save Changes</span>
+                    </>
                   )}
                 </motion.button>
               </div>

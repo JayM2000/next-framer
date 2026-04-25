@@ -83,8 +83,13 @@ export default function RichEditor({ content, onChange, placeholder }: Props) {
   });
 
   useEffect(() => {
-    if (editor && content && editor.getHTML() !== content) {
-      editor.commands.setContent(content);
+    if (editor && typeof content === 'string') {
+      const currentHtml = editor.getHTML();
+      if (currentHtml !== content) {
+        // Prevent unnecessary updates if parent passes '' and editor is already effectively empty
+        if (content === '' && currentHtml === '<p></p>') return;
+        editor.commands.setContent(content);
+      }
     }
   }, [content, editor]);
 
