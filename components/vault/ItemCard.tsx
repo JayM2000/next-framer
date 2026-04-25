@@ -2,7 +2,7 @@
 
 import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, ExternalLink } from 'lucide-react';
+import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, ExternalLink, Star } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -65,19 +65,19 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
       className="vault-glass-card group relative flex cursor-pointer flex-col rounded-xl border border-[var(--vault-border)] transition-shadow hover:shadow-lg hover:shadow-[var(--vault-gold)]/5 hover:border-[var(--vault-gold)]/30"
       style={{ background: typeGradients[item.type] }}
     >
-      {/* Top-left absolute copy count badge on the card itself */}
-      {(item.copyCount ?? 0) > 0 && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="absolute -left-1.5 -top-1.5 z-10 flex min-w-[22px] h-[22px] items-center justify-center rounded-full bg-[var(--vault-gold)] px-1 text-[10px] font-bold text-[#0a0a0f] shadow-[0_2px_8px_rgba(201,168,76,0.3)] ring-4 ring-[var(--vault-panel)] cursor-default">
-              {item.copyCount}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent className="border-orange-500/30 bg-[var(--vault-glass)] backdrop-blur-xl text-orange-600 dark:text-orange-400 shadow-lg font-medium text-xs">
-            <p>Copied {item.copyCount} times</p>
-          </TooltipContent>
-        </Tooltip>
+
+
+      {/* Important Star Marker */}
+      {item.isImportant && (
+        <motion.div
+          animate={{ scale: [1, 1.15, 1], rotate: [0, 15, -15, 0] }}
+          transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
+          className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 text-[#0a0a0f] shadow-[0_0_12px_rgba(251,191,36,0.8)] ring-[3px] ring-[var(--vault-panel)]"
+        >
+          <Star className="h-3 w-3 fill-current drop-shadow-sm" />
+        </motion.div>
       )}
+
       {/* Hover glow effect for clipboard cards */}
       {isClipboard && (
         <motion.div
@@ -109,18 +109,18 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-semibold text-[var(--vault-text)]">{item.title}</h3>
           </div>
-          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--vault-muted)]">
-            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-            <span className="h-0.5 w-0.5 rounded-full bg-[var(--vault-muted)] opacity-50" />
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[var(--vault-muted)] min-w-0">
+            <span className="shrink-0">{new Date(item.createdAt).toLocaleDateString()}</span>
+            <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-[var(--vault-muted)] opacity-50" />
             {(() => {
               const showProfileEnabled = userSettings?.showProfileOnPublic ?? false;
 
               if (isOwner) {
                 // Owner sees their own badge
                 return (
-                  <span className="inline-flex items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm">
-                    <User className="h-2.5 w-2.5" />
-                    {showProfileEnabled && item.ownerName ? item.ownerName : 'You'}
+                  <span className="flex min-w-0 shrink items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm">
+                    <User className="h-2.5 w-2.5 shrink-0" />
+                    <span className="truncate min-w-0">{showProfileEnabled && item.ownerName ? item.ownerName : 'You'}</span>
                   </span>
                 );
               }
@@ -130,9 +130,9 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
                 // Owner has opted in — show name with hover card
                 return (
                   <UserProfileHoverCard userId={item.userId} ownerName={item.ownerName}>
-                    <span className="inline-flex cursor-pointer items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm transition-colors hover:bg-[var(--vault-gold)]/25">
-                      <User className="h-2.5 w-2.5" />
-                      {item.ownerName}
+                    <span className="flex min-w-[80px] shrink cursor-pointer items-center gap-1 rounded-sm bg-[var(--vault-gold)]/15 px-1.5 py-0.5 font-medium text-[var(--vault-gold)] shadow-sm transition-colors hover:bg-[var(--vault-gold)]/25">
+                      <User className="h-2.5 w-2.5 shrink-0" />
+                      <span className="truncate min-w-0">{item.ownerName}</span>
                     </span>
                   </UserProfileHoverCard>
                 );
@@ -140,12 +140,30 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
               // Anonymous / owner didn't opt in
               return (
-                <span className="inline-flex items-center gap-1 rounded-sm bg-slate-500/15 px-1.5 py-0.5 font-medium text-slate-400">
-                  <Globe className="h-2.5 w-2.5" />
-                  Anonymous
+                <span className="flex shrink-0 items-center gap-1 rounded-sm bg-slate-500/15 px-1.5 py-0.5 font-medium text-slate-400">
+                  <Globe className="h-2.5 w-2.5 shrink-0" />
+                  <span className="truncate">Anonymous</span>
                 </span>
               );
             })()}
+            
+            {/* Inline copy count badge */}
+            {(item.copyCount ?? 0) > 0 && (
+              <>
+                <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-[var(--vault-muted)] opacity-50" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex shrink-0 cursor-default items-center gap-1 rounded-sm bg-indigo-500/15 px-1.5 py-0.5 font-medium text-indigo-400">
+                      <Copy className="h-2.5 w-2.5 shrink-0" />
+                      <span>{item.copyCount}</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="border-indigo-500/30 bg-[var(--vault-glass)] backdrop-blur-xl text-indigo-400 shadow-lg font-medium text-xs">
+                    <p>Copied {item.copyCount} times</p>
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -153,7 +171,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
       {/* Content Preview */}
       <div className="flex-1 px-4 pb-2">
         <div
-          className="vault-content-preview text-xs text-[var(--vault-muted)] line-clamp-3"
+          className="vault-content-preview pointer-events-none text-xs text-[var(--vault-muted)] line-clamp-3"
           dangerouslySetInnerHTML={{ __html: item.content }}
         />
       </div>
@@ -207,7 +225,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
       {/* Action Bar */}
       <div
-        className="@container flex items-center gap-1 border-t border-[var(--vault-border)] px-3 py-2 overflow-hidden rounded-b-xl"
+        className="@container flex items-center gap-1 border-t border-[var(--vault-border)] px-1 py-2 overflow-hidden rounded-b-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <motion.button
@@ -246,6 +264,19 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
           </button>
         )}
         {isOwner && (
+          <button
+            className={`vault-action-btn transition-all duration-300 ${item.isImportant ? 'text-yellow-400 hover:text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : ''}`}
+            title={item.isImportant ? "Remove important mark" : "Mark as important"}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch({ type: 'TOGGLE_IMPORTANT', id: item.id });
+            }}
+          >
+            <Star className={`h-3.5 w-3.5 ${item.isImportant ? 'fill-current text-yellow-400' : ''}`} />
+            <span className={`hidden @[350px]:inline ${item.isImportant ? 'text-yellow-400' : ''}`}>Star</span>
+          </button>
+        )}
+        {isOwner && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -253,7 +284,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
                 className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-red-500/10 px-2 py-1.5 text-xs font-medium text-orange-400 transition-all hover:border-orange-500/40 hover:from-orange-500/20 hover:to-red-500/20"
               >
                 <Lock className="h-3.5 w-3.5" />
-                <span className="hidden @[250px]:inline">Private</span>
+                <span className="hidden @[350px]:inline">Private</span>
               </button>
             </TooltipTrigger>
             <TooltipContent className="border-orange-500/30 bg-[var(--vault-glass)] backdrop-blur-xl text-orange-600 dark:text-orange-400 shadow-lg font-medium text-xs">

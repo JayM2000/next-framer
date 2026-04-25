@@ -21,6 +21,7 @@ const createItemSchema = z.object({
   password: z.string().optional(),
   images: z.array(z.string()).optional(),
   tags: z.array(tagSchema).optional(),
+  isImportant: z.boolean().default(false),
 });
 
 const updateItemSchema = z.object({
@@ -35,6 +36,7 @@ const updateItemSchema = z.object({
   password: z.string().nullable().optional(),
   images: z.array(z.string()).optional(),
   tags: z.array(tagSchema).optional(),
+  isImportant: z.boolean().optional(),
 });
 
 // ── Row types ──────────────────────────────────────────────
@@ -51,6 +53,7 @@ interface VaultItemRow {
   site_username: string | null;
   encrypted_password: string | null;
   images_json: string[] | null;
+  is_important: boolean;
   copy_count: number;
   is_deleted: boolean;
   created_at: Date;
@@ -157,6 +160,7 @@ function formatItem(
       color: t.color,
     })),
     extractedUrls: extractUrls(row.plain_text),
+    isImportant: row.is_important,
     copyCount: row.copy_count ?? 0,
     isDeleted: row.is_deleted,
     createdAt: row.created_at.toISOString(),
@@ -533,8 +537,8 @@ export const vaultRouter = createTRPCRouter({
         const insertResult = await client.query<VaultItemRow>(
           `INSERT INTO vault_items
              (user_id, type, visibility, title, content, plain_text,
-              site_url, site_username, encrypted_password, images_json)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              site_url, site_username, encrypted_password, images_json, is_important)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING *`,
           [
             userId,
@@ -547,6 +551,7 @@ export const vaultRouter = createTRPCRouter({
             input.username ?? null,
             input.password ?? null,
             JSON.stringify(input.images ?? []),
+            input.isImportant,
           ]
         );
 
@@ -610,6 +615,7 @@ export const vaultRouter = createTRPCRouter({
         if (input.images !== undefined) {
           addField("images_json", JSON.stringify(input.images));
         }
+        addField("is_important", input.isImportant);
 
         // Always bump updated_at
         sets.push(`updated_at = CURRENT_TIMESTAMP`);
@@ -786,6 +792,55 @@ export const vaultRouter = createTRPCRouter({
       }
 
       // Fetch tags
+      const tagRows = await query<ItemTagRow>(
+        `SELECT vit.item_id, vt.id AS tag_id, vt.label, vt.color
+         FROM vault_item_tags vit
+         JOIN vault_tags vt ON vt.id = vit.tag_id
+         WHERE vit.item_id = $1`,
+        [input.id]
+      );
+
+      (global as any).vaultEventEmitter?.emit('vault:update');
+      return formatItem(
+        result[0],
+        tagRows.map((r) => ({ id: r.tag_id, label: r.label, color: r.color }))
+      );
+    }),
+
+  // ── Toggle importance (PRIVATE — login required) ────────
+  toggleImportant: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = await resolveUserId(ctx.clerkUserId!);
+
+      const existing = await query<VaultItemRow>(
+        `SELECT id FROM vault_items WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE`,
+        [input.id, userId]
+      );
+
+      if (!existing.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Item not found",
+        });
+      }
+
+      const result = await query<VaultItemRow>(
+        `UPDATE vault_items
+         SET is_important = NOT is_important,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE
+         RETURNING *`,
+        [input.id, userId]
+      );
+
+      if (!result.length) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Item not found",
+        });
+      }
+
       const tagRows = await query<ItemTagRow>(
         `SELECT vit.item_id, vt.id AS tag_id, vt.label, vt.color
          FROM vault_item_tags vit

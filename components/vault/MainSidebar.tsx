@@ -25,8 +25,17 @@ export default function MainSidebar() {
   const handleCategoryChange = (category: AppState['activeCategory']) => {
     dispatch({ type: 'SET_CATEGORY', category });
     
-    // If not logged in and trying to access private, we might want to prompt login.
-    // For now, the VaultSidebar on the right handles the Auth screen if not logged in.
+    // Automatically switch tabs for mobile view based on category
+    if (category === 'private' || category === 'trash') {
+      dispatch({ type: 'SET_TAB', tab: 'vault' });
+    } else {
+      dispatch({ type: 'SET_TAB', tab: 'dashboard' });
+    }
+
+    // On mobile, automatically close the sidebar overlay after selection
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      dispatch({ type: 'SET_SIDEBAR', open: false });
+    }
   };
 
   const navItems = [

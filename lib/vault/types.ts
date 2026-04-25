@@ -20,6 +20,7 @@ export interface VaultItem {
   createdAt: string;
   updatedAt: string;
   isDeleted?: boolean; // For trash feature
+  isImportant?: boolean; // For important card feature
   // Password-specific:
   siteUrl?: string;
   username?: string;
@@ -59,6 +60,7 @@ export type AppAction =
   | { type: 'RECOVER_ITEM'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
   | { type: 'DELETE_ITEM_PERMANENT'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
   | { type: 'TOGGLE_VISIBILITY'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
+  | { type: 'TOGGLE_IMPORTANT'; id: string; onSuccess?: () => void; onError?: (error: { message: string }) => void; onSettled?: () => void }
   | { type: 'INCREMENT_COPY_COUNT'; id: string }
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'SET_SELECTED_TAGS'; tags: string[] }

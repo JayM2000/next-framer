@@ -146,7 +146,7 @@ export default function UserProfileHoverCard({ userId, ownerName, children }: Pr
   return (
     <>
       <span
-        className="relative inline-flex"
+        className="relative flex min-w-[100px] shrink"
         onMouseEnter={handleTriggerEnter}
         onMouseLeave={handleTriggerLeave}
         onClick={handleClick}

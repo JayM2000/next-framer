@@ -8,7 +8,7 @@ import ItemDetailModal from './ItemDetailModal';
 import EditItemModal from './EditItemModal';
 import {
   Inbox, Loader2, Flame, FileText, KeyRound, Clipboard,
-  Sparkles, Clock, Link2, User, ListFilter
+  Sparkles, Clock, Link2, User, ListFilter, Star
 } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/types';
 import {
@@ -169,6 +169,7 @@ export default function PublicBoard() {
 
   // Filter state
   const [filterMyItems, setFilterMyItems] = useState(false);
+  const [filterImportant, setFilterImportant] = useState(false);
   const [filterHasLinks, setFilterHasLinks] = useState(false);
   const [sortBy, setSortBy] = useState<'trending' | 'newest' | 'oldest'>('trending');
 
@@ -207,15 +208,19 @@ export default function PublicBoard() {
       items = items.filter(i => i.userId === currentDbUserId);
     }
 
+    if (filterImportant) {
+      items = items.filter(i => i.isImportant);
+    }
+
     if (filterHasLinks) {
       items = items.filter(i => i.extractedUrls && i.extractedUrls.length > 0);
     }
 
     return items;
-  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags, filterMyItems, filterHasLinks, currentDbUserId]);
+  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags, filterMyItems, filterImportant, filterHasLinks, currentDbUserId]);
 
   // ── Build sections ──
-  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0) || filterMyItems || filterHasLinks || sortBy !== 'trending';
+  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0) || filterMyItems || filterImportant || filterHasLinks || sortBy !== 'trending';
 
   const sections: Section[] = useMemo(() => {
     if (isFiltered) {
@@ -355,7 +360,7 @@ export default function PublicBoard() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header — fixed, never scrolls */}
-      <div className="shrink-0 mb-0 flex items-center justify-between pb-2 pt-1 pl-[20px] relative z-10">
+      <div className="shrink-0 mb-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-y-3 pb-2 pt-2 pl-[20px] pr-[11px] relative z-10">
         {/* Scroll shadow constrained to central 80% */}
         <div
           className="absolute bottom-0 left-[1%] right-[1%] h-full pointer-events-none transition-opacity duration-300 rounded-3xl"
@@ -364,7 +369,9 @@ export default function PublicBoard() {
             opacity: isScrolled ? 1 : 0
           }}
         />
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--vault-text)]">
+        
+        {/* Title Section */}
+        <h2 className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--vault-text)] mr-2">
           <Sparkles className="h-4 w-4 text-[var(--vault-gold)]" />
           {boardTitle}
           <span className="text-xs font-normal text-[var(--vault-muted)]">
@@ -383,24 +390,37 @@ export default function PublicBoard() {
           )}
         </h2>
 
-        {/* Custom Filters (Right side) */}
-        <div className="flex items-center gap-2 pr-4 z-20">
+        {/* Custom Filters (Scrollable on mobile, Right-aligned on desktop) */}
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 z-20">
           {currentDbUserId && (
-            <button
-              onClick={() => setFilterMyItems(p => !p)}
-              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
-                filterMyItems
-                  ? 'border-[var(--vault-gold)]/50 bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
-                  : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-[var(--vault-gold)]/30 hover:text-[var(--vault-text)]'
-              }`}
-            >
-              <User className="h-3 w-3" />
-              My Items
-            </button>
+            <>
+              <button
+                onClick={() => setFilterMyItems(p => !p)}
+                className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
+                  filterMyItems
+                    ? 'border-[var(--vault-gold)]/50 bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
+                    : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-[var(--vault-gold)]/30 hover:text-[var(--vault-text)]'
+                }`}
+              >
+                <User className="h-3 w-3" />
+                My Items
+              </button>
+              <button
+                onClick={() => setFilterImportant(p => !p)}
+                className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
+                  filterImportant
+                    ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
+                    : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-yellow-500/30 hover:text-[var(--vault-text)]'
+                }`}
+              >
+                <Star className={`h-3 w-3 ${filterImportant ? 'fill-current' : ''}`} />
+                Important
+              </button>
+            </>
           )}
           <button
             onClick={() => setFilterHasLinks(p => !p)}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
+            className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
               filterHasLinks
                 ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
                 : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-emerald-500/30 hover:text-[var(--vault-text)]'
@@ -410,7 +430,7 @@ export default function PublicBoard() {
             Has Links
           </button>
           
-          <div className="flex items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] pl-2 pr-0.5 py-0.5">
+          <div className="flex shrink-0 items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] pl-2 pr-0.5 py-0.5">
             <ListFilter className="mr-1 h-3 w-3 text-[var(--vault-muted)]" />
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
               <SelectTrigger className="h-5 border-0 bg-transparent px-1 py-0 text-[10px] font-medium text-[var(--vault-text)] shadow-none focus:ring-0 [&>svg]:h-3 [&>svg]:w-3">
@@ -427,7 +447,7 @@ export default function PublicBoard() {
       </div>
 
       {/* Scrollable content area */}
-      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0 px-[11px]">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0 px-[11px] pt-[10px]">
         {/* Empty state */}
         {totalCount === 0 && !isLoading ? (
           <motion.div

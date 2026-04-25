@@ -690,15 +690,22 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
             {isOwner && onEdit && !displayItem.isDeleted && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.05 }}
                 onClick={() => {
                   onEdit(displayItem);
                   onClose();
                 }}
-                className="flex items-center gap-1.5 rounded-lg border border-[var(--vault-gold)]/40 bg-[var(--vault-gold)]/10 px-3 py-2 text-xs font-semibold text-[var(--vault-gold)] transition-colors hover:bg-[var(--vault-gold)]/20"
+                className="group relative flex items-center gap-2 rounded-lg border border-[var(--vault-gold)]/50 bg-[var(--vault-gold)]/15 px-4 py-2 text-sm font-bold text-[var(--vault-gold)] shadow-[0_0_15px_rgba(201,168,76,0.2)] transition-all hover:bg-[var(--vault-gold)]/25 hover:shadow-[0_0_25px_rgba(201,168,76,0.4)] overflow-hidden"
               >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
+                {/* Continuous Shimmer Animation */}
+                <motion.div
+                  className="absolute inset-0 w-[200%] bg-gradient-to-r from-transparent via-[var(--vault-gold)]/30 to-transparent"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+                />
+                {/* Animated Icon */}
+                <Pencil className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-125 group-hover:text-amber-200" />
+                <span className="relative z-10 tracking-wide">Edit Item</span>
               </motion.button>
             )}
             {isOwner && !displayItem.isDeleted && (
@@ -774,14 +781,15 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleDelete}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-300 ${
                 confirmDelete
                   ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'border border-[var(--vault-border)] text-[var(--vault-muted)] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
+                  : 'border sm:border-[var(--vault-border)] sm:text-[var(--vault-muted)] sm:bg-transparent max-sm:text-red-400 max-sm:border-red-500/40 max-sm:bg-red-500/10 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500 max-sm:hover:shadow-[0_0_12px_rgba(239,68,68,0.4)]'
               }`}
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              {confirmDelete ? 'Confirm Delete' : 'Move to Trash'}
+              <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <span className="sm:hidden">{confirmDelete ? 'Confirm' : 'Trash'}</span>
+              <span className="hidden sm:inline">{confirmDelete ? 'Confirm Delete' : 'Move to Trash'}</span>
             </motion.button>
           )}
         </motion.div>

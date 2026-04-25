@@ -198,7 +198,7 @@ export default function VaultItemRow({
           </div>
         ) : (
           <div
-            className="vault-content-preview text-xs text-[var(--vault-muted)] line-clamp-2 leading-relaxed"
+            className="vault-content-preview pointer-events-none text-xs text-[var(--vault-muted)] line-clamp-2 leading-relaxed"
             dangerouslySetInnerHTML={{ __html: item.content }}
           />
         )}

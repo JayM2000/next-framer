@@ -4,17 +4,60 @@ import { TRPCProvider } from "@/trpc/client";
 import { SocketProvider } from "@/components/providers/SocketProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider } from "@clerk/nextjs";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Cinzel, DM_Sans } from "next/font/google";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0f" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "Vault — Password Manager",
+  title: {
+    default: "Vault | Premium Secure Manager",
+    template: "%s | Vault",
+  },
   description:
-    "Vault — A premium password manager and secure note-keeping app.",
+    "Experience Vault, the ultimate premium glassmorphic password manager and secure note-keeping application. Store credentials, secure snippets, and public notes with bank-level encryption and stunning UI.",
+  keywords: [
+    "password manager",
+    "secure notes",
+    "vault",
+    "encryption",
+    "glassmorphism",
+    "clipboard",
+    "snippets",
+    "security",
+    "credentials",
+  ],
+  authors: [{ name: "Vault Team" }],
+  creator: "Vault",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://vault.com",
+    title: "Vault | Premium Secure Manager",
+    description:
+      "Experience Vault, the ultimate premium glassmorphic password manager and secure note-keeping application.",
+    siteName: "Vault",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vault | Premium Secure Manager",
+    description:
+      "The ultimate premium password manager and secure note-keeping app.",
+  },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
   },
 };
 
