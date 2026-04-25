@@ -89,7 +89,7 @@ export function performDiagonalThemeSwitch(
     const onExpanded = (e: TransitionEvent) => {
       // Only trigger on the clip-path transition, not opacity or others
       if (e.propertyName !== 'clip-path' && e.propertyName !== '-webkit-clip-path') return;
-      overlay.removeEventListener('transitionend', onExpanded as any);
+      overlay.removeEventListener('transitionend', onExpanded as EventListener);
 
       Object.assign(overlay.style, {
         transition: `opacity ${FADE_DURATION}ms ease-out`,

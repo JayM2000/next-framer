@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect, memo } from 'react';
+import { useState, useMemo, useEffect, memo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Matter from 'matter-js';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import {
@@ -119,11 +120,186 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
+  
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [gravityEnabled, setGravityEnabled] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
+  const engineRef = useRef<Matter.Engine | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const bodiesMapRef = useRef<Map<string, Matter.Body>>(new Map());
 
-  // Reset tab when modal opens with a new item
+  // Parse plainText into individual word tokens for gravity rendering
+  const gravityWords = useMemo(() => {
+    if (!displayItem) return [];
+    return displayItem.plainText.split(/(\s+)/).map((word, i) => ({
+      text: word,
+      isSpace: word.trim() === '',
+      letters: word.trim().length,
+      id: i,
+    }));
+  }, [displayItem]);
+
+  // Cleanup physics engine on unmount or when gravity is disabled
+  const cleanupPhysics = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (engineRef.current) {
+      Matter.Engine.clear(engineRef.current);
+      engineRef.current = null;
+    }
+    bodiesMapRef.current.clear();
+  }, []);
+
+  // Start Matter.js physics simulation when gravity is enabled
+  useEffect(() => {
+    if (!gravityEnabled || !contentRef.current) return;
+    const container = contentRef.current;
+
+    // Wait one frame for React to paint the word spans
+    requestAnimationFrame(() => {
+      const wordEls = Array.from(container.querySelectorAll('.gravity-word')) as HTMLElement[];
+      if (wordEls.length === 0) return;
+
+      const containerRect = container.getBoundingClientRect();
+      // Use the outer glass card (with the visible border) for wall boundaries
+      const outerCard = container.parentElement;
+      const outerRect = outerCard ? outerCard.getBoundingClientRect() : containerRect;
+      const W = containerRect.width;
+      // H = distance from top of inner content to bottom of outer card border
+      const H = outerRect.bottom - containerRect.top;
+
+      // Create Matter.js engine
+      const engine = Matter.Engine.create({
+        gravity: { x: 0, y: 1.8, scale: 0.001 },
+      });
+      engineRef.current = engine;
+
+      // Create static walls (bottom, left, right)
+      const wallThickness = 20;
+      const walls = [
+        // Bottom wall — flush with outer card's bottom border
+        Matter.Bodies.rectangle(W / 2, H + wallThickness / 2, W + 40, wallThickness, { isStatic: true, restitution: 0.3 }),
+        // Left wall
+        Matter.Bodies.rectangle(-wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
+        // Right wall
+        Matter.Bodies.rectangle(W + wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
+      ];
+      Matter.Composite.add(engine.world, walls);
+
+      // Create bodies for each word
+      const newBodiesMap = new Map<string, Matter.Body>();
+
+      wordEls.forEach(el => {
+        const elRect = el.getBoundingClientRect();
+        const letters = parseInt(el.dataset.letters || '1', 10);
+
+        // Position relative to container
+        const x = elRect.left - containerRect.left + elRect.width / 2;
+        const y = elRect.top - containerRect.top + elRect.height / 2;
+
+        const body = Matter.Bodies.rectangle(x, y, elRect.width, elRect.height, {
+          mass: Math.max(0.5, letters * 0.3),
+          restitution: Math.max(0.2, 0.7 - letters * 0.03), // Heavier = less bouncy
+          friction: 0.4,
+          frictionAir: 0.01,
+          angle: 0,
+        });
+
+        // Give a small random horizontal push for visual variety
+        Matter.Body.setVelocity(body, {
+          x: (Math.random() - 0.5) * 2,
+          y: 0,
+        });
+
+        const key = el.dataset.wordId || el.textContent || String(Math.random());
+        newBodiesMap.set(key, body);
+        el.dataset.bodyKey = key;
+
+        Matter.Composite.add(engine.world, body);
+      });
+
+      bodiesMapRef.current = newBodiesMap;
+
+      // Store original positions for each word element
+      wordEls.forEach(el => {
+        const elRect = el.getBoundingClientRect();
+        el.dataset.origX = String(elRect.left - containerRect.left + elRect.width / 2);
+        el.dataset.origY = String(elRect.top - containerRect.top + elRect.height / 2);
+      });
+
+      // Animation loop: step physics and sync DOM
+      let lastTime = performance.now();
+      const step = (time: number) => {
+        const delta = Math.min(time - lastTime, 16.667); // Cap to recommended max
+        lastTime = time;
+
+        Matter.Engine.update(engine, delta);
+
+        // Sync DOM positions
+        wordEls.forEach(el => {
+          const key = el.dataset.bodyKey;
+          if (!key) return;
+          const body = newBodiesMap.get(key);
+          if (!body) return;
+
+          const origX = parseFloat(el.dataset.origX || '0');
+          const origY = parseFloat(el.dataset.origY || '0');
+
+          const dx = body.position.x - origX;
+          const dy = body.position.y - origY;
+          const angle = body.angle * (180 / Math.PI);
+
+          el.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle}deg)`;
+        });
+
+        rafRef.current = requestAnimationFrame(step);
+      };
+      rafRef.current = requestAnimationFrame(step);
+    });
+
+    return () => cleanupPhysics();
+  }, [gravityEnabled, cleanupPhysics]);
+
+  const toggleGravity = () => {
+    if (isReturning) return;
+    
+    if (gravityEnabled) {
+      setIsReturning(true);
+      
+      // Stop the physics loop so it stops updating transforms
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      
+      // Animate words back to their origin using CSS transitions
+      if (contentRef.current) {
+        const wordEls = Array.from(contentRef.current.querySelectorAll('.gravity-word')) as HTMLElement[];
+        wordEls.forEach(el => {
+          // A bouncy return animation with slight random delays
+          el.style.transition = `transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) ${Math.random() * 0.2}s`;
+          el.style.transform = `translate(0px, 0px) rotate(0deg)`;
+        });
+      }
+
+      // After animation completes, completely disable gravity rendering
+      setTimeout(() => {
+        setGravityEnabled(false);
+        setIsReturning(false);
+      }, 1000);
+    } else {
+      setGravityEnabled(true);
+    }
+  };
+
+  // Reset tab and gravity when modal opens/closes
   useEffect(() => {
     if (item) {
       setActiveTab(initialTab);
+    } else {
+      setGravityEnabled(false);
     }
   }, [item, initialTab]);
 
@@ -458,20 +634,56 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                   {/* Rendered content */}
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Content</p>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleCopy(displayItem.plainText, 'content')}
-                      className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
-                    >
-                      {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                      {copiedField === 'content' ? 'Copied!' : 'Copy All'}
-                    </motion.button>
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={toggleGravity}
+                        className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium transition-colors ${
+                          gravityEnabled 
+                            ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                            : 'text-[var(--vault-muted)] hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)] border border-transparent'
+                        } ${isReturning ? 'opacity-50 pointer-events-none' : ''}`}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Gravity
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleCopy(displayItem.plainText, 'content')}
+                        className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
+                      >
+                        {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                        {copiedField === 'content' ? 'Copied!' : 'Copy All'}
+                      </motion.button>
+                    </div>
                   </div>
-                  <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
-                    <div
-                      className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)]"
-                      dangerouslySetInnerHTML={{ __html: displayItem.content }}
-                    />
+                  <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
+                    {gravityEnabled ? (
+                      <div
+                        ref={contentRef}
+                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                      >
+                        {gravityWords.map(w =>
+                          w.isSpace ? (
+                            <span key={w.id}>{w.text}</span>
+                          ) : (
+                            <span
+                              key={w.id}
+                              className="gravity-word"
+                              data-letters={w.letters}
+                              style={{ display: 'inline-block', transformOrigin: 'center center' }}
+                            >
+                              {w.text}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                        dangerouslySetInnerHTML={{ __html: displayItem.content }}
+                      />
+                    )}
                   </div>
 
                   {/* Interactive code blocks */}
@@ -615,20 +827,56 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
             >
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Content</p>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleCopy(displayItem.plainText, 'content')}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
-                >
-                  {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                  {copiedField === 'content' ? 'Copied!' : 'Copy'}
-                </motion.button>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={toggleGravity}
+                    className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium transition-colors ${
+                      gravityEnabled 
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                        : 'text-[var(--vault-muted)] hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)] border border-transparent'
+                    } ${isReturning ? 'opacity-50 pointer-events-none' : ''}`}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Gravity
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleCopy(displayItem.plainText, 'content')}
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
+                  >
+                    {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    {copiedField === 'content' ? 'Copied!' : 'Copy'}
+                  </motion.button>
+                </div>
               </div>
-              <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
-                <div
-                  className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)]"
-                  dangerouslySetInnerHTML={{ __html: displayItem.content }}
-                />
+              <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
+                {gravityEnabled ? (
+                  <div
+                    ref={contentRef}
+                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                  >
+                    {gravityWords.map(w =>
+                      w.isSpace ? (
+                        <span key={w.id}>{w.text}</span>
+                      ) : (
+                        <span
+                          key={w.id}
+                          className="gravity-word"
+                          data-letters={w.letters}
+                          style={{ display: 'inline-block', transformOrigin: 'center center' }}
+                        >
+                          {w.text}
+                        </span>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                    dangerouslySetInnerHTML={{ __html: displayItem.content }}
+                  />
+                )}
               </div>
             </motion.div>
           )}

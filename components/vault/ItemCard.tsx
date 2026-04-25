@@ -90,7 +90,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
       {/* Click-to-open indicator */}
       <motion.div
-        className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full opacity-0 transition-all duration-200 group-hover:opacity-100"
+        className="absolute right-3 top-[8px] flex h-6 w-6 items-center justify-center rounded-full opacity-0 transition-all duration-200 group-hover:opacity-100"
         style={{ backgroundColor: `${typeColors[item.type]}15`, color: typeColors[item.type] }}
       >
         <ArrowUpRight className="h-3 w-3" />
