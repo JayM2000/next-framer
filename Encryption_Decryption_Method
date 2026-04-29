@@ -1,0 +1,188 @@
+# End-to-End Encryption for Passwords & Private Items
+
+Implement WhatsApp-style client-side encryption so that **even the database owner / app administrator cannot read** password credentials or private item content. Data is encrypted in the browser before it leaves, and only decrypted in the browser when the owner views or copies it.
+
+## How It Works (High Level)
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server/DB
+
+    Note over Browser: User creates password item
+    Browser->>Browser: Generate AES-256-GCM key (per-user)
+    Browser->>Browser: Encrypt password + private content
+    Browser->>Server/DB: Send ciphertext + IV (server never sees plaintext)
+    Note over Server/DB: DB stores only encrypted blobs
+
+    Note over Browser: User copies password
+    Browser->>Browser: Retrieve key from IndexedDB
+    Browser->>Browser: Decrypt ciphertext → plaintext
+    Browser->>Browser: Copy to clipboard
+```
+
+### Encryption Strategy
+
+| Aspect | Choice | Rationale |
+|--------|--------|-----------|
+| Algorithm | **AES-256-GCM** via Web Crypto API | Browser-native, hardware-accelerated, zero dependencies |
+| Key derivation | **PBKDF2** from a user-provided "Vault Passphrase" | Only the user knows the passphrase; server never sees it |
+| Key storage | **IndexedDB** (session-cached derived key) | Survives page refresh, cleared on logout |
+| What's encrypted | `password`, `username`, `content`, `plainText` for `type=password` items AND all fields for `visibility=private` items | Covers all sensitive data |
+| DB column | `encrypted_password` already exists; add `encrypted_content`, `encrypted_plain_text`, `encryption_iv`, `encryption_salt` | Backward compatible |
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Vault Passphrase UX**: Users will be prompted to create a "Vault Passphrase" the first time they save a password or private item. This passphrase is **never sent to the server** — it stays in the browser to derive the encryption key. If the user forgets this passphrase, **their encrypted data is permanently unrecoverable** (just like WhatsApp). We should show a prominent warning about this.
+
+> [!WARNING]
+> **Existing data migration**: Any passwords or private items already in the database are currently stored in plaintext. We have two options:
+> 1. **Encrypt on next access**: When a user sets their passphrase, automatically encrypt any existing unencrypted items.
+> 2. **Leave existing, encrypt new only**: Simpler but inconsistent.
+> 
+> I recommend option 1 — encrypt existing items when the user first sets their passphrase.
+
+> [!CAUTION]
+> **No passphrase recovery**: Since the server never sees the passphrase, there is no "forgot password" flow. If a user loses their passphrase, their encrypted data is **gone forever**. This is the trade-off for true E2E encryption.
+
+## Open Questions
+
+> [!IMPORTANT]
+> 1. **Should anonymous (not-logged-in) users also have encryption?** Currently anonymous users can only create public items, so encryption may not apply to them. Confirm this is acceptable.
+> 2. **Passphrase prompt frequency**: Should users enter their passphrase once per session (stored in memory/IndexedDB until logout), or every time they want to view a secret? I recommend once per session for better UX.
+> 3. **Should `username` and `siteUrl` on password items also be encrypted?** This would hide even the site name from the DB admin but makes search impossible server-side. I recommend encrypting `username` and `password` but keeping `title` and `siteUrl` unencrypted for searchability.
+
+## Proposed Changes
+
+### Crypto Utility Library
+
+#### [NEW] [crypto.ts](file:///c:/Users/misal/OneDrive/Documents/next-framer/lib/vault/crypto.ts)
+
+Client-side encryption/decryption utility using the **Web Crypto API** (zero external dependencies):
+
+- `deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey>` — PBKDF2 key derivation
+- `encrypt(plaintext: string, key: CryptoKey): Promise<{ ciphertext: string; iv: string }>` — AES-256-GCM encryption, returns base64-encoded ciphertext + IV
+- `decrypt(ciphertext: string, iv: string, key: CryptoKey): Promise<string>` — AES-256-GCM decryption
+- `generateSalt(): Uint8Array` — crypto-random salt generation
+- `isEncrypted(value: string): boolean` — heuristic to detect if a value is already encrypted (for migration)
+
+---
+
+### Vault Passphrase Store & UI
+
+#### [NEW] [useVaultPassphrase.ts](file:///c:/Users/misal/OneDrive/Documents/next-framer/lib/vault/useVaultPassphrase.ts)
+
+React hook managing the passphrase lifecycle:
+
+- Stores the derived `CryptoKey` in a React ref (memory-only, cleared on unmount/logout)
+- Caches the salt in IndexedDB (per Clerk userId)
+- Exposes: `hasPassphrase`, `isUnlocked`, `unlock(passphrase)`, `setNewPassphrase(passphrase)`, `lock()`
+- Triggers a modal prompt when encryption is needed but vault is locked
+
+#### [NEW] [VaultPassphraseModal.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/VaultPassphraseModal.tsx)
+
+A premium modal that appears when:
+1. **First time**: User creates their first password/private item → "Create Your Vault Passphrase" with warning about irrecoverability
+2. **Returning session**: User tries to view/copy encrypted data → "Unlock Your Vault" passphrase input
+
+Features:
+- Animated lock icon
+- Passphrase strength indicator (reuse existing `evaluateStrength`)
+- "I understand this cannot be recovered" checkbox on creation
+- Confirm passphrase field on creation
+
+---
+
+### Database Schema
+
+#### [MODIFY] Database migration (manual SQL)
+
+Add new columns to `vault_items`:
+
+```sql
+ALTER TABLE vault_items
+  ADD COLUMN IF NOT EXISTS encrypted_content TEXT,
+  ADD COLUMN IF NOT EXISTS encrypted_plain_text TEXT,
+  ADD COLUMN IF NOT EXISTS encryption_iv TEXT,
+  ADD COLUMN IF NOT EXISTS encryption_salt TEXT;
+
+-- Add salt storage to user_settings for the passphrase key derivation
+ALTER TABLE user_settings
+  ADD COLUMN IF NOT EXISTS encryption_salt TEXT;
+```
+
+---
+
+### Backend Changes
+
+#### [MODIFY] [vault.ts](file:///c:/Users/misal/OneDrive/Documents/next-framer/trpc/routers/vault.ts)
+
+Minimal server-side changes (the server is intentionally dumb about encryption):
+
+- `createItem`: Accept new optional fields `encryptedPassword`, `encryptedContent`, `encryptedPlainText`, `encryptionIv`. When present, store these instead of plaintext. Store a flag `isEncrypted: true` on the item.
+- `updateItem`: Same — accept encrypted variants.
+- `formatItem`: Pass through encrypted fields to the client. The client decrypts.
+- `getPublicItems`: Continue stripping passwords. For encrypted private items, they'll never appear here anyway.
+
+Add a new procedure:
+- `getEncryptionSalt` / `setEncryptionSalt`: Store/retrieve the user's PBKDF2 salt (this is safe — salt is not secret, it's just unique per user)
+
+---
+
+### Frontend Integration
+
+#### [MODIFY] [store.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/lib/vault/store.tsx)
+
+- Add `vaultKey` (CryptoKey | null) to context
+- Before dispatching `ADD_ITEM` for password/private: encrypt sensitive fields client-side
+- After receiving items from tRPC: decrypt encrypted fields client-side
+- Add `encryptField` / `decryptField` helpers exposed via context
+- Add passphrase modal state management
+
+#### [MODIFY] [types.ts](file:///c:/Users/misal/OneDrive/Documents/next-framer/lib/vault/types.ts)
+
+- Add `isEncrypted?: boolean` to `VaultItem`
+- Add `encryptionIv?: string` to `VaultItem`
+
+#### [MODIFY] [CreateItemModal.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/CreateItemModal.tsx)
+
+- Before save: if type is `password` or visibility is `private`, encrypt sensitive fields
+- Prompt for passphrase if vault is locked
+
+#### [MODIFY] [ItemCard.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/ItemCard.tsx)
+
+- On copy: decrypt first, then copy plaintext to clipboard
+- Show 🔒 lock icon on encrypted items
+
+#### [MODIFY] [EditItemModal.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/EditItemModal.tsx)
+
+- Decrypt fields before displaying in edit form
+- Re-encrypt before saving
+
+#### [MODIFY] [VaultSidebar.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/VaultSidebar.tsx)
+
+- Decrypt fields before displaying in the detail panel
+
+---
+
+### Settings Integration
+
+#### [MODIFY] [SettingsModal.tsx](file:///c:/Users/misal/OneDrive/Documents/next-framer/components/vault/SettingsModal.tsx)
+
+- Add "Change Vault Passphrase" section (requires entering old passphrase, then new)
+- Add "Encryption Status" indicator showing how many items are encrypted
+
+## Verification Plan
+
+### Automated Tests
+- Create a scratch test script that imports `crypto.ts` and verifies encrypt → decrypt roundtrip
+- Verify the app builds successfully: `npm run build`
+- Test in browser: create a password item, check DB directly to confirm ciphertext is stored
+
+### Manual Verification
+1. Create a password item → verify DB column shows encrypted gibberish, not the real password
+2. Copy the password → verify clipboard has the real password (decrypted)
+3. Logout and login → verify passphrase prompt appears
+4. Enter wrong passphrase → verify decryption fails gracefully
+5. Query the database directly → confirm no plaintext passwords are visible

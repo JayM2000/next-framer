@@ -43,6 +43,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
   const handleQuickCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
     copyToClipboard(item.plainText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -67,8 +68,8 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
     >
 
 
-      {/* Important Star Marker */}
-      {item.isImportant && (
+      {/* Important Star Marker — only visible to the item owner */}
+      {isOwner && item.isImportant && (
         <motion.div
           animate={{ scale: [1, 1.15, 1], rotate: [0, 15, -15, 0] }}
           transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
@@ -176,8 +177,8 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
         />
       </div>
 
-      {/* Extracted URL Links */}
-      {item.extractedUrls && item.extractedUrls.length > 0 && (
+      {/* Extracted URL Links — hidden for private items */}
+      {item.visibility !== 'private' && item.extractedUrls && item.extractedUrls.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 px-4 pb-2" onClick={(e) => e.stopPropagation()}>
           {item.extractedUrls.map((link, i) => (
             <Tooltip key={i}>

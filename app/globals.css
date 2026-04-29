@@ -722,6 +722,12 @@
   }
 }
 
+/* Skeleton shimmer sweep */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /* Smooth tab underline animation */
 .vault-tab-indicator {
   position: absolute;

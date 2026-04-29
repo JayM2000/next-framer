@@ -20,7 +20,7 @@ export default function Header() {
         {isMobileSearchOpen ? (
           <div className="flex h-14 w-full items-center px-4 gap-3 md:hidden">
             <div className="flex-1 w-full">
-              <SearchBar />
+              <SearchBar autoFocus hideTags />
             </div>
             <button
                onClick={() => {

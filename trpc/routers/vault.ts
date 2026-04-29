@@ -2,6 +2,7 @@ import { query, withTransaction } from "@/db";
 import { createTRPCRouter, baseProcedure, protectedProcedure } from "../init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { encryptItemFieldsServer, decryptItemFieldsServer } from "@/lib/vault/server-crypto";
 
 // ── Zod Schemas ──────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ const createItemSchema = z.object({
   images: z.array(z.string()).optional(),
   tags: z.array(tagSchema).optional(),
   isImportant: z.boolean().default(false),
+  autoTagEnabled: z.boolean().optional(), // client passes localStorage value for anonymous
 });
 
 const updateItemSchema = z.object({
@@ -54,6 +56,11 @@ interface VaultItemRow {
   encrypted_password: string | null;
   images_json: string[] | null;
   is_important: boolean;
+  is_encrypted: boolean;
+  encrypted_content: string | null;
+  encrypted_plain_text: string | null;
+  encrypted_username: string | null;
+  encryption_iv: string | null;
   copy_count: number;
   is_deleted: boolean;
   created_at: Date;
@@ -142,24 +149,48 @@ function formatItem(
   row: VaultItemRow,
   tags: { id: number; label: string; color: string }[]
 ) {
+  let finalPassword = row.encrypted_password ?? undefined;
+  let finalUsername = row.site_username ?? undefined;
+  let finalContent = row.content;
+  let finalPlainText = row.plain_text;
+
+  // Server-side Decryption
+  if (row.is_encrypted && row.encryption_iv) {
+    try {
+      const decrypted = decryptItemFieldsServer({
+        encryptedPassword: row.encrypted_password,
+        encryptedUsername: row.encrypted_username,
+        encryptedContent: row.encrypted_content,
+        encryptedPlainText: row.encrypted_plain_text,
+        encryptionIv: row.encryption_iv,
+      });
+      if (decrypted.password) finalPassword = decrypted.password;
+      if (decrypted.username) finalUsername = decrypted.username;
+      if (decrypted.content) finalContent = decrypted.content;
+      if (decrypted.plainText) finalPlainText = decrypted.plainText;
+    } catch (e) {
+      console.error('Failed to decrypt item:', row.id, e);
+    }
+  }
+
   return {
     id: row.id,
     userId: row.user_id ?? null,
     type: row.type as "password" | "note" | "clipboard",
     visibility: row.visibility as "public" | "private",
     title: row.title,
-    content: row.content,
-    plainText: row.plain_text,
+    content: finalContent,
+    plainText: finalPlainText,
     siteUrl: row.site_url ?? undefined,
-    username: row.site_username ?? undefined,
-    password: row.encrypted_password ?? undefined,
+    username: finalUsername,
+    password: finalPassword,
     images: row.images_json ?? undefined,
     tags: tags.map((t) => ({
       id: String(t.id),
       label: t.label,
       color: t.color,
     })),
-    extractedUrls: extractUrls(row.plain_text),
+    extractedUrls: extractUrls(finalPlainText),
     isImportant: row.is_important,
     copyCount: row.copy_count ?? 0,
     isDeleted: row.is_deleted,
@@ -496,6 +527,107 @@ export const vaultRouter = createTRPCRouter({
     });
   }),
 
+  // ── Get public items with cursor-based pagination ───────
+  getPublicItemsPaginated: baseProcedure
+    .input(
+      z.object({
+        cursor: z.string().nullish(), // JSON-encoded cursor: { createdAt, id }
+        limit: z.number().min(1).max(100).default(20),
+      })
+    )
+    .query(async ({ input }) => {
+      const limit = input.limit;
+
+      let items: PublicItemRow[];
+
+      if (input.cursor) {
+        // Decode composite cursor
+        let cursorData: { createdAt: string; id: string };
+        try {
+          cursorData = JSON.parse(input.cursor);
+        } catch {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid cursor" });
+        }
+
+        items = await query<PublicItemRow>(
+          `SELECT vi.*,
+                  u.name       AS owner_name,
+                  COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
+           FROM vault_items vi
+           LEFT JOIN users u         ON u.id = vi.user_id
+           LEFT JOIN user_settings us ON us.user_id = vi.user_id
+           WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+             AND (vi.created_at, vi.id) < ($1::timestamptz, $2::uuid)
+           ORDER BY vi.created_at DESC, vi.id DESC
+           LIMIT $3`,
+          [cursorData.createdAt, cursorData.id, limit + 1]
+        );
+      } else {
+        // First page — no cursor
+        items = await query<PublicItemRow>(
+          `SELECT vi.*,
+                  u.name       AS owner_name,
+                  COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
+           FROM vault_items vi
+           LEFT JOIN users u         ON u.id = vi.user_id
+           LEFT JOIN user_settings us ON us.user_id = vi.user_id
+           WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+           ORDER BY vi.created_at DESC, vi.id DESC
+           LIMIT $1`,
+          [limit + 1]
+        );
+      }
+
+      // Determine if there's a next page
+      let nextCursor: string | null = null;
+      if (items.length > limit) {
+        const lastItem = items[limit - 1]; // last item of this page
+        nextCursor = JSON.stringify({
+          createdAt: lastItem.created_at.toISOString(),
+          id: lastItem.id,
+        });
+        items = items.slice(0, limit); // trim the extra item
+      }
+
+      // Fetch tags for this page's items
+      const itemIds = items.map((i) => i.id);
+      let allItemTags: ItemTagRow[] = [];
+
+      if (itemIds.length > 0) {
+        allItemTags = await query<ItemTagRow>(
+          `SELECT vit.item_id, vt.id AS tag_id, vt.label, vt.color
+           FROM vault_item_tags vit
+           JOIN vault_tags vt ON vt.id = vit.tag_id
+           WHERE vit.item_id = ANY($1)`,
+          [itemIds]
+        );
+      }
+
+      const tagsByItem = new Map<string, { id: number; label: string; color: string }[]>();
+      for (const row of allItemTags) {
+        const arr = tagsByItem.get(row.item_id) ?? [];
+        arr.push({ id: row.tag_id, label: row.label, color: row.color });
+        tagsByItem.set(row.item_id, arr);
+      }
+
+      const formattedItems = items.map((item) => {
+        const formatted = formatItem(item, tagsByItem.get(item.id) ?? []);
+        if (formatted.type === "password") {
+          formatted.password = undefined;
+        }
+        return {
+          ...formatted,
+          ownerName: item.owner_name ?? undefined,
+          ownerShowProfile: item.owner_show_profile ?? false,
+        };
+      });
+
+      return {
+        items: formattedItems,
+        nextCursor,
+      };
+    }),
+
   // ── Create a new item (PUBLIC — works with or without login) ──
   createItem: baseProcedure
     .input(createItemSchema)
@@ -508,9 +640,10 @@ export const vaultRouter = createTRPCRouter({
         ? "private"
         : userId ? input.visibility : "public";
 
-      // Check auto-tag/auto-title setting
-      let autoTagEnabled = true; // default for anonymous
+      // Check auto-tag setting
+      let autoTagEnabled = input.autoTagEnabled ?? true; // use client value, default true
       if (userId) {
+        // Logged-in user: always read from DB (ignore client override)
         const settingsRows = await query<UserSettingsRow>(
           `SELECT * FROM user_settings WHERE user_id = $1`,
           [userId]
@@ -520,38 +653,77 @@ export const vaultRouter = createTRPCRouter({
         }
       }
 
-      // Determine final tags: user-provided, or auto-generated
+      // Determine final tags: user-provided, or auto-generated (respects autoTagEnabled)
       let finalTags = input.tags ?? [];
       if (finalTags.length === 0 && autoTagEnabled) {
         finalTags = extractAutoTags(input.plainText);
       }
 
-      // Determine final title: user-provided, or auto-generated
+      // Determine final title: auto-title is ALWAYS enabled regardless of autoTagEnabled
       const titleIsEmpty = !input.title.trim() || input.title.trim() === 'Quick Snippet';
-      const finalTitle = (titleIsEmpty && autoTagEnabled)
+      const finalTitle = titleIsEmpty
         ? extractAutoTitle(input.plainText)
         : (input.title.trim() || 'Quick Snippet');
+
+      // Server-Side Encryption
+      const isSecureType = input.type === 'password' || input.type === 'note' || input.type === 'clipboard';
+      const isEncrypted = visibility === 'private' && isSecureType;
+      
+      let finalContent = input.content;
+      let finalPlainText = input.plainText;
+      let finalUsername = input.username;
+      let finalPassword = input.password;
+      let encryptedContent = null;
+      let encryptedPlainText = null;
+      let encryptedUsername = null;
+      let encryptedPassword = null;
+      let encryptionIv = null;
+
+      if (isEncrypted) {
+        const encrypted = encryptItemFieldsServer({
+          password: input.password,
+          username: input.username,
+          content: input.content,
+          plainText: input.plainText,
+        });
+        
+        finalContent = '';
+        finalPlainText = '';
+        finalUsername = undefined;
+        finalPassword = undefined;
+        encryptedContent = encrypted.encryptedContent;
+        encryptedPlainText = encrypted.encryptedPlainText;
+        encryptedUsername = encrypted.encryptedUsername;
+        encryptedPassword = encrypted.encryptedPassword;
+        encryptionIv = encrypted.encryptionIv;
+      }
 
       const result = await withTransaction(async (client) => {
         // Insert the item (user_id may be NULL for anonymous)
         const insertResult = await client.query<VaultItemRow>(
           `INSERT INTO vault_items
              (user_id, type, visibility, title, content, plain_text,
-              site_url, site_username, encrypted_password, images_json, is_important)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+              site_url, site_username, encrypted_password, images_json, is_important,
+              is_encrypted, encrypted_content, encrypted_plain_text, encrypted_username, encryption_iv)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
            RETURNING *`,
           [
             userId,
             input.type,
             visibility,
             finalTitle,
-            input.content,
-            input.plainText,
+            finalContent,
+            finalPlainText,
             input.siteUrl ?? null,
-            input.username ?? null,
-            input.password ?? null,
+            finalUsername ?? null,
+            finalPassword ?? null, // stored in encrypted_password column (legacy naming); nulled when server-side encrypted
             JSON.stringify(input.images ?? []),
             input.isImportant,
+            isEncrypted,
+            encryptedContent,
+            encryptedPlainText,
+            encryptedUsername,
+            encryptionIv,
           ]
         );
 
@@ -604,18 +776,117 @@ export const vaultRouter = createTRPCRouter({
           }
         };
 
+        // Server-Side Encryption evaluation
+        const currentType = input.type ?? existing[0].type;
+        const currentVisibility = input.visibility ?? existing[0].visibility;
+        const isSecureType = currentType === 'password' || currentType === 'note' || currentType === 'clipboard';
+        const isEncrypted = currentVisibility === 'private' && isSecureType;
+        
+        let finalContent = input.content;
+        let finalPlainText = input.plainText;
+        let finalUsername = input.username;
+        let finalPassword = input.password;
+        
+        let encryptedContent: string | null | undefined = undefined;
+        let encryptedPlainText: string | null | undefined = undefined;
+        let encryptedUsername: string | null | undefined = undefined;
+        let encryptedPassword: string | null | undefined = undefined;
+        let encryptionIv: string | null | undefined = undefined;
+
+        if (isEncrypted) {
+          // If we are encrypting, we need the full fields, which might be in the existing row if not provided
+          // Wait, if it's already encrypted and they only update title, we don't need to re-encrypt!
+          // We only re-encrypt if they provide a NEW password, content, or plainText, OR if it wasn't encrypted before.
+          const needsReencryption = 
+            !existing[0].is_encrypted || 
+            input.content !== undefined || 
+            input.plainText !== undefined || 
+            input.password !== undefined || 
+            input.username !== undefined;
+            
+          if (needsReencryption) {
+            // Decrypt the existing first if it was encrypted and we are only partially updating
+            let baseContent = existing[0].content;
+            let basePlainText = existing[0].plain_text;
+            let baseUsername = existing[0].site_username;
+            let basePassword = existing[0].encrypted_password;
+            
+            if (existing[0].is_encrypted && existing[0].encryption_iv) {
+              try {
+                const decrypted = decryptItemFieldsServer({
+                  encryptedPassword: existing[0].encrypted_password,
+                  encryptedUsername: existing[0].encrypted_username,
+                  encryptedContent: existing[0].encrypted_content,
+                  encryptedPlainText: existing[0].encrypted_plain_text,
+                  encryptionIv: existing[0].encryption_iv,
+                });
+                baseContent = decrypted.content ?? '';
+                basePlainText = decrypted.plainText ?? '';
+                baseUsername = decrypted.username ?? null;
+                basePassword = decrypted.password ?? null;
+              } catch (e) {
+                console.error("Failed to decrypt existing item for update:", input.id, e);
+              }
+            }
+            
+            const encryptInput = {
+              content: input.content !== undefined ? input.content : baseContent,
+              plainText: input.plainText !== undefined ? input.plainText : basePlainText,
+              username: input.username !== undefined ? input.username : baseUsername,
+              password: input.password !== undefined ? input.password : basePassword,
+            };
+            
+            const encrypted = encryptItemFieldsServer({
+              password: encryptInput.password || undefined,
+              username: encryptInput.username || undefined,
+              content: encryptInput.content || undefined,
+              plainText: encryptInput.plainText || undefined,
+            });
+            
+            finalContent = '';
+            finalPlainText = '';
+            finalUsername = null;
+            finalPassword = null;
+            encryptedContent = encrypted.encryptedContent;
+            encryptedPlainText = encrypted.encryptedPlainText;
+            encryptedUsername = encrypted.encryptedUsername;
+            encryptedPassword = encrypted.encryptedPassword;
+            encryptionIv = encrypted.encryptionIv;
+          } else {
+             // Keep existing encryption
+             finalContent = undefined;
+             finalPlainText = undefined;
+             finalUsername = undefined;
+             finalPassword = undefined;
+          }
+        } else {
+          // Not encrypted - wipe encryption columns
+          encryptedContent = null;
+          encryptedPlainText = null;
+          encryptedUsername = null;
+          encryptedPassword = null;
+          encryptionIv = null;
+        }
+
         addField("type", input.type);
         addField("visibility", input.visibility);
         addField("title", input.title);
-        addField("content", input.content);
-        addField("plain_text", input.plainText);
+        addField("content", finalContent);
+        addField("plain_text", finalPlainText);
         addField("site_url", input.siteUrl);
-        addField("site_username", input.username);
-        addField("encrypted_password", input.password);
+        addField("site_username", finalUsername);
+        addField("encrypted_password", finalPassword);
         if (input.images !== undefined) {
           addField("images_json", JSON.stringify(input.images));
         }
         addField("is_important", input.isImportant);
+        
+        // E2E encryption fields
+        addField("is_encrypted", isEncrypted);
+        addField("encrypted_content", encryptedContent);
+        addField("encrypted_plain_text", encryptedPlainText);
+        addField("encrypted_username", encryptedUsername);
+        addField("encryption_iv", encryptionIv);
 
         // Always bump updated_at
         sets.push(`updated_at = CURRENT_TIMESTAMP`);
@@ -1031,6 +1302,33 @@ export const vaultRouter = createTRPCRouter({
         totalTags,
         activityData,
       };
+    }),
+
+  // ══════════════════════════════════════════════════════════
+  //  ENCRYPTION SALT (stored server-side as backup)
+  // ══════════════════════════════════════════════════════════
+
+  getEncryptionSalt: protectedProcedure.query(async ({ ctx }) => {
+    const userId = await resolveUserId(ctx.clerkUserId!);
+    const rows = await query<{ encryption_salt: string | null }>(
+      `SELECT encryption_salt FROM user_settings WHERE user_id = $1`,
+      [userId]
+    );
+    return { salt: rows[0]?.encryption_salt ?? null };
+  }),
+
+  setEncryptionSalt: protectedProcedure
+    .input(z.object({ salt: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = await resolveUserId(ctx.clerkUserId!);
+      await query(
+        `INSERT INTO user_settings (user_id, encryption_salt)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id)
+         DO UPDATE SET encryption_salt = $2, updated_at = CURRENT_TIMESTAMP`,
+        [userId, input.salt]
+      );
+      return { success: true };
     }),
 });
 
