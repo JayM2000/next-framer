@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useVault } from '@/lib/vault/store';
-import { Plus, Clipboard, Loader2 } from 'lucide-react';
+import { Plus, Clipboard, Loader2, Sparkles } from 'lucide-react';
 import type { VaultItem, Tag } from '@/lib/vault/types';
 import TagInput from './TagInput';
+import SettingsModal from './SettingsModal';
+import { motion } from 'framer-motion';
 
 const RichEditor = dynamic(() => import('./RichEditor'), { ssr: false });
 
@@ -15,6 +17,7 @@ export default function QuickAdd() {
   const [plainText, setPlainText] = useState('');
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState<Tag[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleSave = () => {
     // If stripped plainText is empty, reject
@@ -61,6 +64,24 @@ export default function QuickAdd() {
 
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {/* Auto Tag Info Banner */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.1 }}
+          className="relative overflow-hidden rounded-lg bg-gradient-to-r from-[var(--vault-gold)]/10 to-transparent border border-[var(--vault-gold)]/20 p-3 flex gap-3 items-start shadow-sm"
+        >
+          <motion.div
+            animate={{ rotate: [0, 15, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+          >
+            <Sparkles className="h-4 w-4 text-[var(--vault-gold)] shrink-0 mt-0.5" />
+          </motion.div>
+          <p className="text-xs text-[var(--vault-muted)] leading-relaxed">
+            <span className="font-semibold text-[var(--vault-text)]">Pro Tip:</span> You can go to <strong className="text-[var(--vault-gold)] font-medium cursor-pointer underline underline-offset-2 hover:text-amber-400 transition-colors" onClick={() => setSettingsOpen(true)}>Settings</strong> and enable <strong className="text-[var(--vault-gold)] font-medium">Auto Tag</strong> to automatically generate tags for your snippets!
+          </p>
+        </motion.div>
+
         {/* Title (Optional) */}
         <div>
           <input
@@ -101,6 +122,7 @@ export default function QuickAdd() {
           )}
         </button>
       </div>
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} highlightAutoTag={true} />
     </div>
   );
 }

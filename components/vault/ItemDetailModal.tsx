@@ -340,6 +340,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
   const isClipboard = displayItem.type === 'clipboard';
 
   const handleCopy = (text: string, field: string) => {
+
     copyToClipboard(text, `${field} copied!`);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
@@ -658,7 +659,14 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                     </div>
                   </div>
                   <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
-                    {gravityEnabled ? (
+                    {displayItem.visibility === 'private' && displayItem.type !== 'password' ? (
+                      <div className="flex h-full min-h-[226px] items-center justify-center">
+                        <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
+                          <Lock className="h-8 w-8" />
+                          <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
+                        </div>
+                      </div>
+                    ) : gravityEnabled ? (
                       <div
                         ref={contentRef}
                         className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
@@ -851,7 +859,14 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                 </div>
               </div>
               <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
-                {gravityEnabled ? (
+                {displayItem.visibility === 'private' && displayItem.type !== 'password' ? (
+                  <div className="flex h-full min-h-[226px] items-center justify-center">
+                    <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
+                      <Lock className="h-8 w-8" />
+                      <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
+                    </div>
+                  </div>
+                ) : gravityEnabled ? (
                   <div
                     ref={contentRef}
                     className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"

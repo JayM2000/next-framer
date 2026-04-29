@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef, memo } from 'react';
+import { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import ItemCard from './ItemCard';
@@ -8,7 +8,7 @@ import ItemDetailModal from './ItemDetailModal';
 import EditItemModal from './EditItemModal';
 import {
   Inbox, Loader2, Flame, FileText, KeyRound, Clipboard,
-  Sparkles, Clock, Link2, User, ListFilter, Star
+  Sparkles, Clock, Link2, User, ListFilter, Star, Tag
 } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/types';
 import {
@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@clerk/nextjs';
+import { trpc } from '@/trpc/client';
 
 // ── Section config ────────────────────────────────────────
 interface Section {
@@ -123,6 +125,67 @@ function SectionDivider({
   );
 }
 
+// ── Skeleton Card Component ───────────────────────────────
+function SkeletonCard({ index }: { index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.06, duration: 0.35 }}
+      className="relative flex flex-col rounded-xl border border-[var(--vault-border)] overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, rgba(100,100,120,0.06), rgba(100,100,120,0.02))' }}
+    >
+      {/* Animated shimmer overlay */}
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-[var(--vault-text)]/[0.04] to-transparent" />
+
+      {/* Header skeleton */}
+      <div className="flex items-start gap-2.5 p-4 pb-2">
+        <div className="h-8 w-8 shrink-0 rounded-lg bg-[var(--vault-text)]/[0.06]" />
+        <div className="min-w-0 flex-1 space-y-2 pr-8">
+          <div className="h-4 w-3/5 rounded-md bg-[var(--vault-text)]/[0.07]" />
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-16 rounded bg-[var(--vault-text)]/[0.05]" />
+            <div className="h-3 w-14 rounded-sm bg-[var(--vault-text)]/[0.05]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content skeleton */}
+      <div className="flex-1 space-y-1.5 px-4 pb-3">
+        <div className="h-3 w-full rounded bg-[var(--vault-text)]/[0.05]" />
+        <div className="h-3 w-5/6 rounded bg-[var(--vault-text)]/[0.04]" />
+        <div className="h-3 w-2/3 rounded bg-[var(--vault-text)]/[0.03]" />
+      </div>
+
+      {/* Tags skeleton */}
+      <div className="flex gap-1.5 px-4 pb-2">
+        <div className="h-4 w-12 rounded-md bg-[var(--vault-text)]/[0.05]" />
+        <div className="h-4 w-16 rounded-md bg-[var(--vault-text)]/[0.04]" />
+      </div>
+
+      {/* Action bar skeleton */}
+      <div className="flex items-center gap-2 border-t border-[var(--vault-border)] px-3 py-2.5">
+        <div className="h-5 w-14 rounded-lg bg-[var(--vault-text)]/[0.05]" />
+        <div className="h-5 w-12 rounded-lg bg-[var(--vault-text)]/[0.04]" />
+        <div className="ml-auto h-5 w-16 rounded-lg bg-[var(--vault-text)]/[0.04]" />
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Skeleton Grid ─────────────────────────────────────────
+function SkeletonGrid({ count = 9 }: { count?: number }) {
+  return (
+    <div className="px-[11px] pt-[10px]">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: count }).map((_, i) => (
+          <SkeletonCard key={i} index={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Card Grid Component ───────────────────────────────────
 const CardGrid = memo(function CardGrid({
   items,
@@ -162,16 +225,47 @@ const CardGrid = memo(function CardGrid({
 // ══════════════════════════════════════════════════════════
 
 export default function PublicBoard() {
-  const { state, isLoading, isRefetching, currentDbUserId } = useVault();
+  const { isSignedIn } = useAuth();
+  const { state, isLoading, isRefetching, currentDbUserId, fetchNextPublicPage, hasNextPublicPage, isFetchingNextPublicPage } = useVault();
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Filter state
   const [filterMyItems, setFilterMyItems] = useState(false);
   const [filterImportant, setFilterImportant] = useState(false);
   const [filterHasLinks, setFilterHasLinks] = useState(false);
+  const [filterTag, setFilterTag] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'trending' | 'newest' | 'oldest'>('trending');
+
+  // Filter scroll state
+  const filterScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkFilterScroll = useCallback(() => {
+    if (filterScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = filterScrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      // Use a 1px tolerance for rounding issues
+      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth - 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkFilterScroll();
+    window.addEventListener('resize', checkFilterScroll);
+    return () => window.removeEventListener('resize', checkFilterScroll);
+  }, [checkFilterScroll]);
+
+  // Re-check when auth or tags load which might change the scroll width
+  useEffect(() => {
+    checkFilterScroll();
+  }, [checkFilterScroll, isSignedIn]);
+
+  // Fetch tags for dropdown
+  const { data: availableTags = [] } = trpc.vault.getAllTags.useQuery();
 
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
@@ -179,6 +273,32 @@ export default function PublicBoard() {
     }
   }, []);
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
+
+  // ── Infinite scroll: IntersectionObserver ──
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPublicPage && !isFetchingNextPublicPage) {
+          fetchNextPublicPage();
+        }
+      },
+      { rootMargin: '300px' } // trigger 300px before reaching the bottom
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPublicPage, isFetchingNextPublicPage, fetchNextPublicPage]);
+
+  // Clear auth-dependent filters immediately on sign-out
+  useEffect(() => {
+    if (!isSignedIn) {
+      setFilterMyItems(false);
+      setFilterImportant(false);
+    }
+  }, [isSignedIn]);
 
   // ── Build filtered base list ──
   const filteredItems = useMemo(() => {
@@ -216,11 +336,15 @@ export default function PublicBoard() {
       items = items.filter(i => i.extractedUrls && i.extractedUrls.length > 0);
     }
 
+    if (filterTag !== 'all') {
+      items = items.filter(i => i.tags.some(t => t.label === filterTag));
+    }
+
     return items;
-  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags, filterMyItems, filterImportant, filterHasLinks, currentDbUserId]);
+  }, [state.items, state.searchQuery, state.activeCategory, state.selectedTags, filterMyItems, filterImportant, filterHasLinks, filterTag, currentDbUserId]);
 
   // ── Build sections ──
-  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0) || filterMyItems || filterImportant || filterHasLinks || sortBy !== 'trending';
+  const isFiltered = state.activeCategory !== 'all' || !!state.searchQuery || (state.selectedTags && state.selectedTags.length > 0) || filterMyItems || filterImportant || filterHasLinks || filterTag !== 'all' || sortBy !== 'trending';
 
   const sections: Section[] = useMemo(() => {
     if (isFiltered) {
@@ -360,7 +484,7 @@ export default function PublicBoard() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header — fixed, never scrolls */}
-      <div className="shrink-0 mb-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-y-3 pb-2 pt-2 pl-[20px] pr-[11px] relative z-10">
+      <div className="shrink-0 mb-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-y-3 pb-2 pt-2 pl-[6px] pr-[5px] md:pl-[8px] md:pr-[10px] lg:px-[18px] relative z-10">
         {/* Scroll shadow constrained to central 80% */}
         <div
           className="absolute bottom-0 left-[1%] right-[1%] h-full pointer-events-none transition-opacity duration-300 rounded-3xl"
@@ -391,65 +515,101 @@ export default function PublicBoard() {
         </h2>
 
         {/* Custom Filters (Scrollable on mobile, Right-aligned on desktop) */}
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 z-20">
-          {currentDbUserId && (
-            <>
-              <button
-                onClick={() => setFilterMyItems(p => !p)}
-                className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
-                  filterMyItems
-                    ? 'border-[var(--vault-gold)]/50 bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
-                    : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-[var(--vault-gold)]/30 hover:text-[var(--vault-text)]'
-                }`}
-              >
-                <User className="h-3 w-3" />
-                My Items
-              </button>
-              <button
-                onClick={() => setFilterImportant(p => !p)}
-                className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
-                  filterImportant
-                    ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
-                    : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-yellow-500/30 hover:text-[var(--vault-text)]'
-                }`}
-              >
-                <Star className={`h-3 w-3 ${filterImportant ? 'fill-current' : ''}`} />
-                Important
-              </button>
-            </>
+        <div className="relative w-full md:w-auto flex items-center min-w-0">
+          {canScrollLeft && (
+            <div className="absolute left-0 top-0 bottom-1 w-6 bg-gradient-to-r from-black/15 dark:from-white/15 to-transparent pointer-events-none z-30" />
           )}
-          <button
-            onClick={() => setFilterHasLinks(p => !p)}
-            className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all ${
-              filterHasLinks
-                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-emerald-500/30 hover:text-[var(--vault-text)]'
-            }`}
-          >
-            <Link2 className="h-3 w-3" />
-            Has Links
-          </button>
           
-          <div className="flex shrink-0 items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] pl-2 pr-0.5 py-0.5">
-            <ListFilter className="mr-1 h-3 w-3 text-[var(--vault-muted)]" />
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'trending' | 'newest' | 'oldest')}>
-              <SelectTrigger className="h-5 border-0 bg-transparent px-1 py-0 text-[10px] font-medium text-[var(--vault-text)] shadow-none focus:ring-0 [&>svg]:h-3 [&>svg]:w-3">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="trending" className="text-xs">Trending</SelectItem>
-                <SelectItem value="newest" className="text-xs">Newest</SelectItem>
-                <SelectItem value="oldest" className="text-xs">Oldest</SelectItem>
-              </SelectContent>
-            </Select>
+          <div 
+            ref={filterScrollRef}
+            onScroll={checkFilterScroll}
+            className="flex items-center gap-2 w-full overflow-x-auto no-scrollbar pb-1 md:pb-0 z-20"
+          >
+            {isSignedIn && currentDbUserId && (
+              <>
+                <button
+                  onClick={() => { setFilterMyItems(p => !p); setTimeout(checkFilterScroll, 50); }}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border h-7 px-3 text-xs font-medium transition-all ${
+                    filterMyItems
+                      ? 'border-[var(--vault-gold)]/50 bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
+                      : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-[var(--vault-gold)]/30 hover:text-[var(--vault-text)]'
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  My Items
+                </button>
+                <button
+                  onClick={() => { setFilterImportant(p => !p); setTimeout(checkFilterScroll, 50); }}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border h-7 px-3 text-xs font-medium transition-all ${
+                    filterImportant
+                      ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
+                      : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-yellow-500/30 hover:text-[var(--vault-text)]'
+                  }`}
+                >
+                  <Star className={`h-3.5 w-3.5 ${filterImportant ? 'fill-current' : ''}`} />
+                  Important
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => { setFilterHasLinks(p => !p); setTimeout(checkFilterScroll, 50); }}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border h-7 px-3 text-xs font-medium transition-all ${
+                filterHasLinks
+                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                  : 'border-[var(--vault-border)] text-[var(--vault-muted)] hover:border-emerald-500/30 hover:text-[var(--vault-text)]'
+              }`}
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              Has Links
+            </button>
+            
+            <div className="flex shrink-0 items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] h-7 pl-2.5 pr-1">
+              <ListFilter className="mr-1 h-3.5 w-3.5 text-[var(--vault-muted)]" />
+              <Select value={sortBy} onValueChange={(value) => { setSortBy(value as 'trending' | 'newest' | 'oldest'); setTimeout(checkFilterScroll, 50); }}>
+                <SelectTrigger className="h-full border-0 bg-transparent px-1.5 py-0 text-xs font-medium text-[var(--vault-text)] shadow-none focus:ring-0 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="trending" className="text-xs">Trending</SelectItem>
+                  <SelectItem value="newest" className="text-xs">Newest</SelectItem>
+                  <SelectItem value="oldest" className="text-xs">Oldest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex shrink-0 items-center rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] h-7 pl-2.5 pr-1">
+              <Tag className="mr-1 h-3.5 w-3.5 text-[var(--vault-muted)]" />
+              <Select value={filterTag} onValueChange={(value) => { setFilterTag(value); setTimeout(checkFilterScroll, 50); }}>
+                <SelectTrigger className="h-full border-0 bg-transparent px-1.5 py-0 text-xs font-medium text-[var(--vault-text)] shadow-none focus:ring-0 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                  <SelectValue placeholder="All Tags" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All Tags</SelectItem>
+                  {availableTags.map((tag, idx) => (
+                    <SelectItem key={`${tag.label}-${idx}`} value={tag.label} className="text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                        {tag.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {canScrollRight && (
+            <div className="absolute right-0 top-0 bottom-1 w-6 bg-gradient-to-l from-black/15 dark:from-white/15 to-transparent pointer-events-none z-30" />
+          )}
         </div>
       </div>
 
       {/* Scrollable content area */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0 px-[11px] pt-[10px]">
-        {/* Empty state */}
-        {totalCount === 0 && !isLoading ? (
+        {/* Skeleton loading — initial load / hard refresh only */}
+        {isLoading ? (
+          <SkeletonGrid count={9} />
+        ) : totalCount === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -538,6 +698,44 @@ export default function PublicBoard() {
             )}
           </div>
         )}
+
+            {/* ── Infinite Scroll Sentinel + States ── */}
+            {!isLoading && totalCount > 0 && (
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 pb-8">
+                {/* Sentinel element — observed by IntersectionObserver */}
+                <div ref={sentinelRef} className="h-1 w-full" />
+
+                {/* Loading spinner while fetching next page */}
+                {isFetchingNextPublicPage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)] px-5 py-2.5 backdrop-blur-md"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin text-[var(--vault-gold)]" />
+                    <span className="text-xs font-medium text-[var(--vault-muted)]">Loading more items...</span>
+                  </motion.div>
+                )}
+
+                {/* End of feed message */}
+                {!hasNextPublicPage && !isFetchingNextPublicPage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex flex-col items-center gap-2 py-4"
+                  >
+                    <div className="flex items-center gap-2 rounded-full border border-[var(--vault-border)] bg-[var(--vault-panel)]/80 px-5 py-2 backdrop-blur-md">
+                      <Sparkles className="h-3.5 w-3.5 text-[var(--vault-gold)]" />
+                      <span className="text-xs font-medium text-[var(--vault-muted)]">You&apos;ve reached the end</span>
+                    </div>
+                    <span className="text-[10px] text-[var(--vault-muted)]/60">
+                      {totalCount} {totalCount === 1 ? 'item' : 'items'} total
+                    </span>
+                  </motion.div>
+                )}
+              </div>
+            )}
       </div>
 
       {/* Detail Modal */}

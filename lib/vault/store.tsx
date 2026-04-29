@@ -13,6 +13,26 @@ import React, {
 import { trpc } from '@/trpc/client';
 import type { AppState, AppAction, VaultItem } from './types';
 import { useSocket } from '@/components/providers/SocketProvider';
+import { useAuth } from '@clerk/nextjs';
+
+// ── LocalStorage key for anonymous user settings ──
+const ANON_SETTINGS_KEY = 'vault_anon_settings';
+
+function getAnonSettings(): { autoTagEnabled: boolean } {
+  if (typeof window === 'undefined') return { autoTagEnabled: true };
+  try {
+    const raw = localStorage.getItem(ANON_SETTINGS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return { autoTagEnabled: true };
+}
+
+function setAnonSettings(settings: { autoTagEnabled: boolean }) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(ANON_SETTINGS_KEY, JSON.stringify(settings));
+  } catch { /* ignore */ }
+}
 
 // ── UI-only state (not persisted) ─────────────────────────
 
@@ -82,6 +102,10 @@ interface VaultContextType {
   currentDbUserId: number | null;
   userSettings: { showProfileOnPublic: boolean; autoTagEnabled: boolean } | undefined;
   updateUserSettings: (showProfileOnPublic: boolean, autoTagEnabled: boolean) => void;
+  // Infinite scroll pagination
+  fetchNextPublicPage: () => void;
+  hasNextPublicPage: boolean;
+  isFetchingNextPublicPage: boolean;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -89,8 +113,11 @@ const VaultContext = createContext<VaultContextType | undefined>(undefined);
 // ── Provider ──────────────────────────────────────────────
 
 export function VaultProvider({ children }: { children: ReactNode }) {
+  const { isSignedIn } = useAuth();
   const [ui, uiDispatch] = useReducer(uiReducer, initialUIState);
+  const [anonAutoTag, setAnonAutoTag] = React.useState(() => getAnonSettings().autoTagEnabled);
   const toastTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const userSettingsRef = useRef<{ autoTagEnabled: boolean }>({ autoTagEnabled: true });
 
   // ── tRPC queries ──
   const utils = trpc.useUtils();
@@ -106,12 +133,25 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   });
 
   const {
-    data: publicItems = [],
+    data: publicPagesData,
     isLoading: isLoadingPublic,
     isFetching: isFetchingPublic,
-  } = trpc.vault.getPublicItems.useQuery(undefined, {
-    refetchOnWindowFocus: true, // Also refetch when they switch tabs
-  });
+    fetchNextPage: fetchNextPublicPage,
+    hasNextPage: hasNextPublicPage = false,
+    isFetchingNextPage: isFetchingNextPublicPage,
+  } = trpc.vault.getPublicItemsPaginated.useInfiniteQuery(
+    { limit: 20 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      refetchOnWindowFocus: true,
+    }
+  );
+
+  // Flatten all pages into a single array
+  const publicItems = useMemo(() => {
+    if (!publicPagesData?.pages) return [];
+    return publicPagesData.pages.flatMap((page) => page.items);
+  }, [publicPagesData]);
 
   // ── Socket.IO Live Updates ──
   const { socket, isConnected } = useSocket();
@@ -121,7 +161,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
     const handleVaultUpdate = () => {
       // Invalidate queries so they refetch immediately
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
       utils.vault.getItems.invalidate();
       utils.vault.getUserSettings.invalidate();
     };
@@ -138,55 +178,55 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const createMutation = trpc.vault.createItem.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const updateMutation = trpc.vault.updateItem.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const deleteMutation = trpc.vault.deleteItem.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const toggleVisibilityMutation = trpc.vault.toggleVisibility.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const toggleImportantMutation = trpc.vault.toggleImportant.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const recoverMutation = trpc.vault.recoverItem.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const deletePermanentMutation = trpc.vault.deleteItemPermanent.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
   const incrementCopyCountMutation = trpc.vault.incrementCopyCount.useMutation({
     onSuccess: () => {
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
@@ -214,6 +254,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     return merged;
   }, [userItems, publicItems]);
 
+  const finalItems = items;
+
   // ── Toast helpers ──
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
@@ -240,52 +282,59 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         // ── Data mutations → tRPC ──
         case 'ADD_ITEM': {
           const item = action.item;
-          createMutation.mutate(
-            {
-              type: item.type,
-              visibility: item.visibility,
-              title: item.title,
-              content: item.content,
-              plainText: item.plainText,
-              siteUrl: item.siteUrl,
-              username: item.username,
-              password: item.password,
-              images: item.images,
-              tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
-              isImportant: item.isImportant,
+          
+          const payload = {
+            type: item.type,
+            visibility: item.visibility,
+            title: item.title,
+            content: item.content,
+            plainText: item.plainText,
+            siteUrl: item.siteUrl,
+            username: item.username,
+            password: item.password,
+            images: item.images,
+            tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
+            isImportant: item.isImportant,
+            autoTagEnabled: userSettingsRef.current?.autoTagEnabled,
+          };
+
+          createMutation.mutate(payload, {
+            onSuccess: () => action.onSuccess?.(),
+            onError: (error) => {
+              showToast(error.message || 'Failed to add item', 'error');
+              action.onError?.(error);
             },
-            {
-              onSuccess: () => action.onSuccess?.(),
-              onError: (error) => action.onError?.(error),
-              onSettled: () => action.onSettled?.(),
-            }
-          );
+            onSettled: () => action.onSettled?.(),
+          });
           break;
         }
 
         case 'UPDATE_ITEM': {
           const item = action.item;
-          updateMutation.mutate(
-            {
-              id: item.id,
-              type: item.type,
-              visibility: item.visibility,
-              title: item.title,
-              content: item.content,
-              plainText: item.plainText,
-              siteUrl: item.siteUrl,
-              username: item.username,
-              password: item.password,
-              images: item.images,
-              tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
-              isImportant: item.isImportant,
+          
+          const payload = {
+            id: item.id,
+            type: item.type,
+            visibility: item.visibility,
+            title: item.title,
+            content: item.content,
+            plainText: item.plainText,
+            siteUrl: item.siteUrl,
+            username: item.username,
+            password: item.password,
+            images: item.images,
+            tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
+            isImportant: item.isImportant,
+          };
+
+          updateMutation.mutate(payload, {
+            onSuccess: () => action.onSuccess?.(),
+            onError: (error) => {
+              showToast(error.message || 'Failed to update item', 'error');
+              action.onError?.(error);
             },
-            {
-              onSuccess: () => action.onSuccess?.(),
-              onError: (error) => action.onError?.(error),
-              onSettled: () => action.onSettled?.(),
-            }
-          );
+            onSettled: () => action.onSettled?.(),
+          });
           break;
         }
 
@@ -365,14 +414,24 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           break;
       }
     },
-    [createMutation, updateMutation, deleteMutation, toggleVisibilityMutation, toggleImportantMutation, recoverMutation, deletePermanentMutation, incrementCopyCountMutation]
+    [
+      createMutation,
+      updateMutation,
+      deleteMutation,
+      toggleVisibilityMutation,
+      toggleImportantMutation,
+      recoverMutation,
+      deletePermanentMutation,
+      incrementCopyCountMutation,
+      showToast,
+    ]
   );
 
   // ── Compose the full AppState shape ──
   const state: AppState = useMemo(
     () => ({
       auth: { isLoggedIn: false, username: null }, // Clerk handles auth, not used by components
-      items,
+      items: finalItems,
       searchQuery: ui.searchQuery,
       selectedTags: ui.selectedTags,
       toast: ui.toast,
@@ -381,7 +440,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       drawerOpen: ui.drawerOpen,
       sidebarOpen: ui.sidebarOpen,
     }),
-    [items, ui]
+    [finalItems, ui]
   );
 
   const isLoading = isLoadingUserItems || isLoadingPublic;
@@ -398,23 +457,56 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [userItems]);
 
   // ── User settings (profile visibility toggle) ──
-  const { data: userSettings } = trpc.vault.getUserSettings.useQuery(undefined, {
+  // Only query API when user is signed in to avoid UNAUTHORIZED errors
+  const { data: apiUserSettings } = trpc.vault.getUserSettings.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    enabled: !!isSignedIn,
   });
 
   const updateSettingsMutation = trpc.vault.updateUserSettings.useMutation({
     onSuccess: () => {
       utils.vault.getUserSettings.invalidate();
-      utils.vault.getPublicItems.invalidate();
+      utils.vault.getPublicItemsPaginated.invalidate();
     },
   });
 
+  // Strict separation: API-only when signed in, localStorage-only when anonymous
+  const userSettings = useMemo(() => {
+    if (isSignedIn) {
+      // Logged in → always from API (default while loading, never touch localStorage)
+      return apiUserSettings ?? { showProfileOnPublic: false, autoTagEnabled: true };
+    }
+    // Anonymous → always from localStorage
+    return { showProfileOnPublic: false, autoTagEnabled: anonAutoTag };
+  }, [isSignedIn, apiUserSettings, anonAutoTag]);
+
+  // Keep ref in sync so dispatch (defined earlier) can read the latest value
+  userSettingsRef.current = userSettings;
+
   const updateUserSettings = useCallback(
     (showProfileOnPublic: boolean, autoTagEnabled: boolean) => {
-      updateSettingsMutation.mutate({ showProfileOnPublic, autoTagEnabled });
+      if (isSignedIn) {
+        // Logged in → persist to DB via API
+        updateSettingsMutation.mutate(
+          { showProfileOnPublic, autoTagEnabled },
+          {
+            onSuccess: () => showToast('Settings saved successfully'),
+            onError: (err) => showToast(err.message || 'Failed to save settings', 'error'),
+          }
+        );
+      } else {
+        // Anonymous → persist to localStorage
+        try {
+          setAnonAutoTag(autoTagEnabled);
+          setAnonSettings({ autoTagEnabled });
+          showToast('Settings saved locally');
+        } catch {
+          showToast('Failed to save settings locally', 'error');
+        }
+      }
     },
-    [updateSettingsMutation]
+    [isSignedIn, updateSettingsMutation, showToast]
   );
 
   const contextValue = useMemo(
@@ -429,6 +521,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       currentDbUserId,
       userSettings,
       updateUserSettings,
+      fetchNextPublicPage: () => { if (hasNextPublicPage) fetchNextPublicPage(); },
+      hasNextPublicPage,
+      isFetchingNextPublicPage,
     }),
     [
       state,
@@ -441,6 +536,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       currentDbUserId,
       userSettings,
       updateUserSettings,
+      fetchNextPublicPage,
+      hasNextPublicPage,
+      isFetchingNextPublicPage,
     ]
   );
 

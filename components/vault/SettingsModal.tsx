@@ -5,14 +5,17 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Eye, EyeOff, User, Globe, Sparkles } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
+import { useAuth } from '@clerk/nextjs';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  highlightAutoTag?: boolean;
 }
 
-export default function SettingsModal({ open, onClose }: Props) {
-  const { userSettings, updateUserSettings, currentDbUserId } = useVault();
+export default function SettingsModal({ open, onClose, highlightAutoTag }: Props) {
+  const { isSignedIn } = useAuth();
+  const { userSettings, updateUserSettings } = useVault();
   const [localProfilePublic, setLocalProfilePublic] = useState(false);
   const [localAutoTag, setLocalAutoTag] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -83,7 +86,7 @@ export default function SettingsModal({ open, onClose }: Props) {
             {/* Body */}
             <div className="space-y-6 px-5 py-5">
               {/* Profile Visibility */}
-              {currentDbUserId && (
+              {isSignedIn && (
                 <div className="rounded-xl border border-[var(--vault-border)] bg-[var(--vault-glass)] p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -164,7 +167,21 @@ export default function SettingsModal({ open, onClose }: Props) {
               )}
 
               {/* Auto Tag */}
-              <div className="rounded-xl border border-[var(--vault-border)] bg-[var(--vault-glass)] p-4">
+              <motion.div 
+                animate={highlightAutoTag ? { 
+                  borderColor: ['var(--vault-border)', 'var(--vault-gold)', 'var(--vault-border)'],
+                  boxShadow: ['none', '0 0 15px 0 rgba(251, 191, 36, 0.3)', 'none'],
+                } : {}}
+                transition={highlightAutoTag ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
+                className={`rounded-xl border bg-[var(--vault-glass)] p-4 relative ${highlightAutoTag ? 'border-[var(--vault-gold)] shadow-sm' : 'border-[var(--vault-border)]'}`}
+              >
+                {highlightAutoTag && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute -inset-px rounded-xl border border-[var(--vault-gold)]/50 bg-gradient-to-r from-[var(--vault-gold)]/5 to-transparent pointer-events-none"
+                  />
+                )}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--vault-text)]">
@@ -200,7 +217,7 @@ export default function SettingsModal({ open, onClose }: Props) {
                     />
                   </button>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Footer */}

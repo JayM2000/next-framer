@@ -5,10 +5,22 @@ import { useVault } from '@/lib/vault/store';
 import { trpc } from '@/trpc/client';
 import { Search, X, Tag } from 'lucide-react';
 
-export default function SearchBar() {
+interface SearchBarProps {
+  autoFocus?: boolean;
+  hideTags?: boolean;
+}
+
+export default function SearchBar({ autoFocus, hideTags }: SearchBarProps = {}) {
   const { state, dispatch } = useVault();
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
 
   // Fetch all available tags
   const { data: availableTags = [] } = trpc.vault.getAllTags.useQuery();
@@ -54,7 +66,7 @@ export default function SearchBar() {
         <Search className="h-4 w-4 shrink-0 text-[var(--vault-muted)]" />
         
         {/* Selected Tags Pills */}
-        {state.selectedTags?.map(tagLabel => {
+        {!hideTags && state.selectedTags?.map(tagLabel => {
           const tagInfo = availableTags.find(t => t.label === tagLabel);
           const color = tagInfo?.color || '#8b5cf6';
           return (
@@ -76,6 +88,7 @@ export default function SearchBar() {
         })}
 
         <input
+          ref={inputRef}
           id="vault-search"
           type="text"
           placeholder={state.selectedTags?.length ? "" : "Search vault..."}
@@ -96,7 +109,7 @@ export default function SearchBar() {
       )}
 
       {/* Tags Dropdown */}
-      {isFocused && availableTags.length > 0 && (
+      {!hideTags && isFocused && availableTags.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-[var(--vault-border)] bg-[var(--vault-panel)] p-2 shadow-xl backdrop-blur-xl">
           <div className="mb-2 px-1 text-xs font-semibold text-[var(--vault-muted)] flex items-center gap-1.5">
             <Tag className="h-3 w-3" /> Filter by tags
