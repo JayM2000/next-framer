@@ -45,7 +45,7 @@ function VaultContent() {
           <div className="mx-auto max-w-7xl px-4 py-4 flex-1 flex flex-col min-h-0 w-full">
             {state.activeTab === 'dashboard' && <PublicBoard />}
             {state.activeTab === 'vault' && (
-              <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="flex-1 flex flex-col min-h-0">
                 <VaultSidebar />
               </div>
             )}

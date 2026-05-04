@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Eye, EyeOff, Copy, Globe, Trash2, KeyRound,
-  FileText, Pencil, Clipboard, Check, Shield, ExternalLink, ArrowUpRight, RotateCcw
+  FileText, Pencil, Clipboard, Check, Shield, ExternalLink, ArrowUpRight, RotateCcw, Lock
 } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
@@ -52,6 +52,7 @@ export default function VaultItemRow({
   const p = palette[item.type];
   const Icon = typeIcons[item.type];
   const isPassword = item.type === 'password';
+  const isPrivate = item.visibility === 'private';
 
   const flash = (label: string) => {
     setCopied(label);
@@ -185,16 +186,23 @@ export default function VaultItemRow({
             </span>
             <span className="h-3 w-px bg-[var(--vault-border)] shrink-0" />
             <span className="flex-1 truncate font-mono text-xs text-[var(--vault-muted)]">
-              {showPassword ? item.password : '••••••••••'}
+              {isPrivate ? '••••••••••' : (showPassword ? item.password : '••••••••••')}
             </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowPassword(!showPassword); }}
-              className="shrink-0 rounded p-0.5 text-[var(--vault-muted)] transition-colors hover:text-[var(--vault-text)]"
-            >
-              {showPassword
-                ? <EyeOff className="h-3 w-3" />
-                : <Eye className="h-3 w-3" />}
-            </button>
+            {!isPrivate && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowPassword(!showPassword); }}
+                className="shrink-0 rounded p-0.5 text-[var(--vault-muted)] transition-colors hover:text-[var(--vault-text)]"
+              >
+                {showPassword
+                  ? <EyeOff className="h-3 w-3" />
+                  : <Eye className="h-3 w-3" />}
+              </button>
+            )}
+          </div>
+        ) : isPrivate ? (
+          <div className="flex items-center gap-2 rounded-lg p-2 mt-0.5" style={{ background: 'var(--vault-glass)' }}>
+            <Lock className="h-3 w-3 shrink-0 text-[var(--vault-muted)] opacity-60" />
+            <span className="text-xs font-medium italic text-[var(--vault-muted)] opacity-60">••• Private Content •••</span>
           </div>
         ) : (
           <div

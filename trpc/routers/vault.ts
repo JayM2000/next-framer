@@ -690,7 +690,9 @@ export const vaultRouter = createTRPCRouter({
         finalContent = '';
         finalPlainText = '';
         finalUsername = undefined;
-        finalPassword = undefined;
+        // Store the encrypted password ciphertext in the encrypted_password column
+        // (reused: plaintext for non-encrypted items, ciphertext for encrypted items)
+        finalPassword = encrypted.encryptedPassword ?? undefined;
         encryptedContent = encrypted.encryptedContent;
         encryptedPlainText = encrypted.encryptedPlainText;
         encryptedUsername = encrypted.encryptedUsername;
@@ -846,7 +848,8 @@ export const vaultRouter = createTRPCRouter({
             finalContent = '';
             finalPlainText = '';
             finalUsername = null;
-            finalPassword = null;
+            // Store the encrypted password ciphertext in the encrypted_password column
+            finalPassword = encrypted.encryptedPassword ?? null;
             encryptedContent = encrypted.encryptedContent;
             encryptedPlainText = encrypted.encryptedPlainText;
             encryptedUsername = encrypted.encryptedUsername;

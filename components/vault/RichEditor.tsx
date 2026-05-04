@@ -8,6 +8,7 @@ import Highlight from '@tiptap/extension-highlight';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { checkAutocorrect } from '@/lib/vault/autocorrect';
 import EditorToolbar from './EditorToolbar';
@@ -63,6 +64,15 @@ export default function RichEditor({ content, onChange, placeholder }: Props) {
       TextStyle,
       Color,
       Image.configure({ inline: true }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          class: 'text-[var(--vault-gold)] underline underline-offset-2 hover:text-amber-400 transition-colors cursor-pointer',
+        },
+      }),
     ],
     content,
     immediatelyRender: false,
