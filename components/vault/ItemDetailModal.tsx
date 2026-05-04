@@ -597,17 +597,21 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Password</p>
                     <p className="truncate font-mono text-sm font-medium text-[var(--vault-text)]">
-                      {showPassword ? displayItem.password : '•'.repeat(Math.min(displayItem.password.length, 20))}
+                      {displayItem.visibility === 'private'
+                        ? '•'.repeat(Math.min(displayItem.password.length, 20))
+                        : (showPassword ? displayItem.password : '•'.repeat(Math.min(displayItem.password.length, 20)))}
                     </p>
                   </div>
                   <div className="flex gap-1.5">
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="rounded-lg p-2 text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
-                    >
-                      {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </motion.button>
+                    {displayItem.visibility !== 'private' && (
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="rounded-lg p-2 text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
+                      >
+                        {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </motion.button>
+                    )}
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => handleCopy(displayItem.password!, 'password')}
@@ -659,7 +663,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                     </div>
                   </div>
                   <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
-                    {displayItem.visibility === 'private' && displayItem.type !== 'password' ? (
+                    {displayItem.visibility === 'private' ? (
                       <div className="flex h-full min-h-[226px] items-center justify-center">
                         <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                           <Lock className="h-8 w-8" />
@@ -826,7 +830,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                 </motion.div>
               )}
             </AnimatePresence>
-          ) : (
+          ) : displayItem.type !== 'password' ? (
             /* ─── Non-clipboard items: normal content ─── */
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -859,7 +863,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                 </div>
               </div>
               <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
-                {displayItem.visibility === 'private' && displayItem.type !== 'password' ? (
+                {displayItem.visibility === 'private' ? (
                   <div className="flex h-full min-h-[226px] items-center justify-center">
                     <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                       <Lock className="h-8 w-8" />
@@ -894,7 +898,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                 )}
               </div>
             </motion.div>
-          )}
+          ) : null}
 
           {/* Tags */}
           {displayItem.tags.length > 0 && (

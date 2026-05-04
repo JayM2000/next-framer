@@ -1,11 +1,11 @@
 # Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-05-04)
 
 ## Corpus Check
-- 83 files · ~75,070 words
+- 84 files · ~75,844 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 202 nodes · 144 edges · 71 communities detected
+- 204 nodes · 145 edges · 71 communities detected
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -95,34 +95,34 @@
 10. `Page()` - 2 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
 - `GET()` --calls--> `query()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\app\api\vehicle-parts\list\route.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
 - `query()` --calls--> `migrate()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\migrate-users.mjs
 - `query()` --calls--> `runSchemas()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\run-schemas.mjs
-- `decryptItemFieldsServer()` --calls--> `formatItem()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\lib\vault\server-crypto.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
+- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
+- `DashboardContent()` --calls--> `useSidebar()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\app\(dashboard)\layout.tsx → C:\Users\misal\OneDrive\Documents\next-framer\components\sidebar-context.tsx
 
 ## Communities
 
 ### Community 0 - "Community 0"
+Cohesion: 0.18
+Nodes (8): GET(), decryptItemFieldsServer(), decryptText(), encryptItemFieldsServer(), encryptText(), extractAutoTags(), extractUrls(), formatItem()
+
+### Community 1 - "Community 1"
 Cohesion: 0.15
 Nodes (5): Dashboard(), useSocket(), useVault(), VaultProvider(), VaultItemRow()
 
-### Community 1 - "Community 1"
-Cohesion: 0.2
-Nodes (5): query(), withTransaction(), migrate(), POST(), runSchemas()
-
 ### Community 2 - "Community 2"
-Cohesion: 0.2
-Nodes (2): formatDate(), formatTime()
+Cohesion: 0.18
+Nodes (6): query(), withTransaction(), migrate(), POST(), runSchemas(), upsertTagsForItem()
 
 ### Community 3 - "Community 3"
-Cohesion: 0.22
-Nodes (5): GET(), extractAutoTags(), extractUrls(), formatItem(), upsertTagsForItem()
+Cohesion: 0.2
+Nodes (2): formatDate(), formatTime()
 
 ### Community 4 - "Community 4"
 Cohesion: 0.25
@@ -153,47 +153,47 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 11 - "Community 11"
-Cohesion: 0.6
-Nodes (4): decryptItemFieldsServer(), decryptText(), encryptItemFieldsServer(), encryptText()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 12 - "Community 12"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 13 - "Community 13"
-Cohesion: 0.5
-Nodes (0): 
-
-### Community 14 - "Community 14"
 Cohesion: 0.83
 Nodes (3): addTag(), handleKeyDown(), removeTag()
 
-### Community 15 - "Community 15"
+### Community 14 - "Community 14"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 16 - "Community 16"
+### Community 15 - "Community 15"
 Cohesion: 0.67
 Nodes (1): Page()
+
+### Community 16 - "Community 16"
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 17 - "Community 17"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 18 - "Community 18"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 19 - "Community 19"
 Cohesion: 1.0
 Nodes (2): formatDate(), formatTime()
+
+### Community 19 - "Community 19"
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 20 - "Community 20"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 21 - "Community 21"
-Cohesion: 0.67
+Cohesion: 1.0
 Nodes (0): 
 
 ### Community 22 - "Community 22"
@@ -393,17 +393,19 @@ Cohesion: 1.0
 Nodes (0): 
 
 ## Knowledge Gaps
-- **Thin community `Community 22`** (2 nodes): `layout.tsx`, `RootLayout()`
+- **Thin community `Community 21`** (2 nodes): `layout.tsx`, `RootLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 23`** (2 nodes): `page.tsx`, `Home()`
+- **Thin community `Community 22`** (2 nodes): `page.tsx`, `Home()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 24`** (2 nodes): `layout.tsx`, `Layout()`
+- **Thin community `Community 23`** (2 nodes): `layout.tsx`, `Layout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 25`** (2 nodes): `page.tsx`, `DashboardPage()`
+- **Thin community `Community 24`** (2 nodes): `page.tsx`, `DashboardPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 26`** (2 nodes): `page.tsx`, `VehiclesPage()`
+- **Thin community `Community 25`** (2 nodes): `page.tsx`, `VehiclesPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 27`** (2 nodes): `route.ts`, `handler()`
+- **Thin community `Community 26`** (2 nodes): `route.ts`, `handler()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 27`** (2 nodes): `page.tsx`, `PingPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 28`** (2 nodes): `AnimationFm()`, `AnimationFm.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -495,12 +497,10 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `query()` connect `Community 1` to `Community 3`?**
+- **Why does `query()` connect `Community 2` to `Community 0`?**
   _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **Why does `upsertTagsForItem()` connect `Community 3` to `Community 1`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `formatItem()` connect `Community 3` to `Community 11`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **Why does `upsertTagsForItem()` connect `Community 2` to `Community 0`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `query()` (e.g. with `POST()` and `GET()`) actually correct?**
   _`query()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `POST()` (e.g. with `query()` and `withTransaction()`) actually correct?**
