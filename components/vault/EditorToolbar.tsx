@@ -5,9 +5,10 @@ import { useState, useRef } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, Quote,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Palette, Highlighter, Code, RemoveFormatting, Smile, Image as ImageIcon, Minus
+  Palette, Highlighter, Code, RemoveFormatting, Smile, Image as ImageIcon, Minus, ScanText
 } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
+import ImageOCRModal from './ImageOCRModal';
 
 interface Props {
   editor: Editor | null;
@@ -27,6 +28,7 @@ export default function EditorToolbar({ editor }: Props) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showTextColor, setShowTextColor] = useState(false);
   const [showHighlight, setShowHighlight] = useState(false);
+  const [showOCR, setShowOCR] = useState(false);
   const emojiAnchorRef = useRef<HTMLDivElement>(null);
 
   if (!editor) return null;
@@ -192,9 +194,27 @@ export default function EditorToolbar({ editor }: Props) {
       <ToolBtn onClick={addImage} title="Insert Image">
         <ImageIcon className="h-3.5 w-3.5" />
       </ToolBtn>
+      <button
+        type="button"
+        onClick={() => { setShowOCR(true); setShowEmoji(false); setShowTextColor(false); setShowHighlight(false); }}
+        className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[var(--vault-muted)] transition-all hover:bg-[var(--vault-gold)]/10 hover:text-[var(--vault-gold)] border border-transparent hover:border-[var(--vault-gold)]/20"
+        title="Extract Text from Image (OCR)"
+      >
+        <ScanText className="h-3.5 w-3.5 text-[var(--vault-gold)]" />
+        <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-[var(--vault-gold)]">Extract Text</span>
+      </button>
       <ToolBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider">
         <Minus className="h-3.5 w-3.5" />
       </ToolBtn>
+
+      {/* OCR Modal */}
+      <ImageOCRModal
+        open={showOCR}
+        onClose={() => setShowOCR(false)}
+        onInsert={(html) => {
+          editor.chain().focus().insertContent(html).run();
+        }}
+      />
     </div>
   );
 }
