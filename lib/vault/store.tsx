@@ -448,13 +448,15 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const isRefetching = (isFetchingUserItems && !isLoadingUserItems) || (isFetchingPublic && !isLoadingPublic);
 
   // Derive the current user's DB id from their items
+  // Gate on isSignedIn so auth-dependent UI reacts instantly on sign-out
   const currentDbUserId: number | null = useMemo(() => {
+    if (!isSignedIn) return null;
     if (userItems.length > 0) {
       const first = userItems[0] as VaultItem;
       return first.userId ?? null;
     }
     return null;
-  }, [userItems]);
+  }, [isSignedIn, userItems]);
 
   // ── User settings (profile visibility toggle) ──
   // Only query API when user is signed in to avoid UNAUTHORIZED errors
