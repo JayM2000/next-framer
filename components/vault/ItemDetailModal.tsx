@@ -416,7 +416,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 30 }}
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-          className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 flex flex-col rounded-2xl border border-[var(--vault-border)] bg-[var(--vault-panel)] shadow-2xl sm:max-w-2xl sm:w-[90vw] sm:max-h-[85vh]"
+          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 flex flex-col rounded-2xl border border-[var(--vault-border)] bg-[var(--vault-panel)] shadow-2xl sm:max-w-2xl sm:w-[90vw] max-h-[calc(100vh-2rem)] sm:max-h-[85vh]"
         >
         {/* ─── Hero Header ─── */}
         <div className={`relative shrink-0 overflow-hidden rounded-t-2xl bg-gradient-to-br ${config.gradient}`}>
@@ -662,9 +662,9 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                       </motion.button>
                     </div>
                   </div>
-                  <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
+                  <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
                     {displayItem.visibility === 'private' ? (
-                      <div className="flex h-full min-h-[226px] items-center justify-center">
+                      <div className="flex h-full items-center justify-center py-6">
                         <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                           <Lock className="h-8 w-8" />
                           <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
@@ -673,7 +673,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                     ) : gravityEnabled ? (
                       <div
                         ref={contentRef}
-                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                       >
                         {gravityWords.map(w =>
                           w.isSpace ? (
@@ -692,7 +692,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                       </div>
                     ) : (
                       <div
-                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                         dangerouslySetInnerHTML={{ __html: displayItem.content }}
                       />
                     )}
@@ -862,9 +862,9 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                   </motion.button>
                 </div>
               </div>
-              <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
+              <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
                 {displayItem.visibility === 'private' ? (
-                  <div className="flex h-full min-h-[226px] items-center justify-center">
+                  <div className="flex h-full items-center justify-center py-6">
                     <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                       <Lock className="h-8 w-8" />
                       <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
@@ -873,7 +873,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                 ) : gravityEnabled ? (
                   <div
                     ref={contentRef}
-                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                   >
                     {gravityWords.map(w =>
                       w.isSpace ? (
@@ -892,7 +892,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                   </div>
                 ) : (
                   <div
-                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                     dangerouslySetInnerHTML={{ __html: displayItem.content }}
                   />
                 )}
