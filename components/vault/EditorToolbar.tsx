@@ -1,14 +1,16 @@
 'use client';
 
 import { type Editor } from '@tiptap/react';
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, Heading3, Quote,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Highlighter, Code, RemoveFormatting, Smile, Image as ImageIcon, Minus, ScanText
 } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
-import ImageOCRModal from './ImageOCRModal';
+
+// Lazy-load OCR modal — only loaded when user clicks "Extract Text"
+const ImageOCRModal = lazy(() => import('./ImageOCRModal'));
 
 interface Props {
   editor: Editor | null;
@@ -207,14 +209,18 @@ export default function EditorToolbar({ editor }: Props) {
         <Minus className="h-3.5 w-3.5" />
       </ToolBtn>
 
-      {/* OCR Modal */}
-      <ImageOCRModal
-        open={showOCR}
-        onClose={() => setShowOCR(false)}
-        onInsert={(html) => {
-          editor.chain().focus().insertContent(html).run();
-        }}
-      />
+      {/* OCR Modal — lazy-loaded, only mounted when open */}
+      {showOCR && (
+        <Suspense fallback={null}>
+          <ImageOCRModal
+            open={showOCR}
+            onClose={() => setShowOCR(false)}
+            onInsert={(html) => {
+              editor.chain().focus().insertContent(html).run();
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

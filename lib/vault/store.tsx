@@ -206,7 +206,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const toggleImportantMutation = trpc.vault.toggleImportant.useMutation({
     onSuccess: () => {
       utils.vault.getItems.invalidate();
-      utils.vault.getPublicItemsPaginated.invalidate();
+      // No need to invalidate public items — importance is only visible to the owner
     },
   });
 
@@ -464,6 +464,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     retry: false,
     refetchOnWindowFocus: false,
     enabled: !!isSignedIn,
+    staleTime: 5 * 60 * 1000, // 5 min — settings rarely change
   });
 
   const updateSettingsMutation = trpc.vault.updateUserSettings.useMutation({

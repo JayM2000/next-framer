@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, memo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Matter from 'matter-js';
+// Matter.js is dynamically imported in the gravity effect to reduce initial bundle size
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import {
@@ -106,7 +106,7 @@ function InteractiveCodeBlock({ code, onCopyLine }: { code: string; onCopyLine: 
 }
 
 const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
-  console.log(initialTab, 'initialTab');
+
   const [cachedItem, setCachedItem] = useState<VaultItem | null>(item);
   useEffect(() => {
     if (item) setCachedItem(item);
@@ -124,9 +124,11 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
   const contentRef = useRef<HTMLDivElement>(null);
   const [gravityEnabled, setGravityEnabled] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
-  const engineRef = useRef<Matter.Engine | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const engineRef = useRef<any>(null);
   const rafRef = useRef<number | null>(null);
-  const bodiesMapRef = useRef<Map<string, Matter.Body>>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bodiesMapRef = useRef<Map<string, any>>(new Map());
 
   // Parse plainText into individual word tokens for gravity rendering
   const gravityWords = useMemo(() => {
@@ -146,8 +148,13 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
       rafRef.current = null;
     }
     if (engineRef.current) {
-      Matter.Engine.clear(engineRef.current);
-      engineRef.current = null;
+      // Dynamic import cached by bundler — this is synchronous after first load
+      import('matter-js').then((M) => {
+        if (engineRef.current) {
+          M.default.Engine.clear(engineRef.current);
+          engineRef.current = null;
+        }
+      });
     }
     bodiesMapRef.current.clear();
   }, []);
@@ -157,106 +164,110 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
     if (!gravityEnabled || !contentRef.current) return;
     const container = contentRef.current;
 
-    // Wait one frame for React to paint the word spans
-    requestAnimationFrame(() => {
-      const wordEls = Array.from(container.querySelectorAll('.gravity-word')) as HTMLElement[];
-      if (wordEls.length === 0) return;
+    // Dynamically import Matter.js — only loaded when gravity is actually used
+    import('matter-js').then(({ default: Matter }) => {
+      // Wait one frame for React to paint the word spans
+      requestAnimationFrame(() => {
+        const wordEls = Array.from(container.querySelectorAll('.gravity-word')) as HTMLElement[];
+        if (wordEls.length === 0) return;
 
-      const containerRect = container.getBoundingClientRect();
-      // Use the outer glass card (with the visible border) for wall boundaries
-      const outerCard = container.parentElement;
-      const outerRect = outerCard ? outerCard.getBoundingClientRect() : containerRect;
-      const W = containerRect.width;
-      // H = distance from top of inner content to bottom of outer card border
-      const H = outerRect.bottom - containerRect.top;
+        const containerRect = container.getBoundingClientRect();
+        // Use the outer glass card (with the visible border) for wall boundaries
+        const outerCard = container.parentElement;
+        const outerRect = outerCard ? outerCard.getBoundingClientRect() : containerRect;
+        const W = containerRect.width;
+        // H = distance from top of inner content to bottom of outer card border
+        const H = outerRect.bottom - containerRect.top;
 
-      // Create Matter.js engine
-      const engine = Matter.Engine.create({
-        gravity: { x: 0, y: 1.8, scale: 0.001 },
-      });
-      engineRef.current = engine;
-
-      // Create static walls (bottom, left, right)
-      const wallThickness = 20;
-      const walls = [
-        // Bottom wall — flush with outer card's bottom border
-        Matter.Bodies.rectangle(W / 2, H + wallThickness / 2, W + 40, wallThickness, { isStatic: true, restitution: 0.3 }),
-        // Left wall
-        Matter.Bodies.rectangle(-wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
-        // Right wall
-        Matter.Bodies.rectangle(W + wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
-      ];
-      Matter.Composite.add(engine.world, walls);
-
-      // Create bodies for each word
-      const newBodiesMap = new Map<string, Matter.Body>();
-
-      wordEls.forEach(el => {
-        const elRect = el.getBoundingClientRect();
-        const letters = parseInt(el.dataset.letters || '1', 10);
-
-        // Position relative to container
-        const x = elRect.left - containerRect.left + elRect.width / 2;
-        const y = elRect.top - containerRect.top + elRect.height / 2;
-
-        const body = Matter.Bodies.rectangle(x, y, elRect.width, elRect.height, {
-          mass: Math.max(0.5, letters * 0.3),
-          restitution: Math.max(0.2, 0.7 - letters * 0.03), // Heavier = less bouncy
-          friction: 0.4,
-          frictionAir: 0.01,
-          angle: 0,
+        // Create Matter.js engine
+        const engine = Matter.Engine.create({
+          gravity: { x: 0, y: 1.8, scale: 0.001 },
         });
+        engineRef.current = engine;
 
-        // Give a small random horizontal push for visual variety
-        Matter.Body.setVelocity(body, {
-          x: (Math.random() - 0.5) * 2,
-          y: 0,
-        });
+        // Create static walls (bottom, left, right)
+        const wallThickness = 20;
+        const walls = [
+          // Bottom wall — flush with outer card's bottom border
+          Matter.Bodies.rectangle(W / 2, H + wallThickness / 2, W + 40, wallThickness, { isStatic: true, restitution: 0.3 }),
+          // Left wall
+          Matter.Bodies.rectangle(-wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
+          // Right wall
+          Matter.Bodies.rectangle(W + wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
+        ];
+        Matter.Composite.add(engine.world, walls);
 
-        const key = el.dataset.wordId || el.textContent || String(Math.random());
-        newBodiesMap.set(key, body);
-        el.dataset.bodyKey = key;
+        // Create bodies for each word
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newBodiesMap = new Map<string, any>();
 
-        Matter.Composite.add(engine.world, body);
-      });
-
-      bodiesMapRef.current = newBodiesMap;
-
-      // Store original positions for each word element
-      wordEls.forEach(el => {
-        const elRect = el.getBoundingClientRect();
-        el.dataset.origX = String(elRect.left - containerRect.left + elRect.width / 2);
-        el.dataset.origY = String(elRect.top - containerRect.top + elRect.height / 2);
-      });
-
-      // Animation loop: step physics and sync DOM
-      let lastTime = performance.now();
-      const step = (time: number) => {
-        const delta = Math.min(time - lastTime, 16.667); // Cap to recommended max
-        lastTime = time;
-
-        Matter.Engine.update(engine, delta);
-
-        // Sync DOM positions
         wordEls.forEach(el => {
-          const key = el.dataset.bodyKey;
-          if (!key) return;
-          const body = newBodiesMap.get(key);
-          if (!body) return;
+          const elRect = el.getBoundingClientRect();
+          const letters = parseInt(el.dataset.letters || '1', 10);
 
-          const origX = parseFloat(el.dataset.origX || '0');
-          const origY = parseFloat(el.dataset.origY || '0');
+          // Position relative to container
+          const x = elRect.left - containerRect.left + elRect.width / 2;
+          const y = elRect.top - containerRect.top + elRect.height / 2;
 
-          const dx = body.position.x - origX;
-          const dy = body.position.y - origY;
-          const angle = body.angle * (180 / Math.PI);
+          const body = Matter.Bodies.rectangle(x, y, elRect.width, elRect.height, {
+            mass: Math.max(0.5, letters * 0.3),
+            restitution: Math.max(0.2, 0.7 - letters * 0.03), // Heavier = less bouncy
+            friction: 0.4,
+            frictionAir: 0.01,
+            angle: 0,
+          });
 
-          el.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle}deg)`;
+          // Give a small random horizontal push for visual variety
+          Matter.Body.setVelocity(body, {
+            x: (Math.random() - 0.5) * 2,
+            y: 0,
+          });
+
+          const key = el.dataset.wordId || el.textContent || String(Math.random());
+          newBodiesMap.set(key, body);
+          el.dataset.bodyKey = key;
+
+          Matter.Composite.add(engine.world, body);
         });
 
+        bodiesMapRef.current = newBodiesMap;
+
+        // Store original positions for each word element
+        wordEls.forEach(el => {
+          const elRect = el.getBoundingClientRect();
+          el.dataset.origX = String(elRect.left - containerRect.left + elRect.width / 2);
+          el.dataset.origY = String(elRect.top - containerRect.top + elRect.height / 2);
+        });
+
+        // Animation loop: step physics and sync DOM
+        let lastTime = performance.now();
+        const step = (time: number) => {
+          const delta = Math.min(time - lastTime, 16.667); // Cap to recommended max
+          lastTime = time;
+
+          Matter.Engine.update(engine, delta);
+
+          // Sync DOM positions
+          wordEls.forEach(el => {
+            const key = el.dataset.bodyKey;
+            if (!key) return;
+            const body = newBodiesMap.get(key);
+            if (!body) return;
+
+            const origX = parseFloat(el.dataset.origX || '0');
+            const origY = parseFloat(el.dataset.origY || '0');
+
+            const dx = body.position.x - origX;
+            const dy = body.position.y - origY;
+            const angle = body.angle * (180 / Math.PI);
+
+            el.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle}deg)`;
+          });
+
+          rafRef.current = requestAnimationFrame(step);
+        };
         rafRef.current = requestAnimationFrame(step);
-      };
-      rafRef.current = requestAnimationFrame(step);
+      });
     });
 
     return () => cleanupPhysics();
@@ -416,7 +427,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 30 }}
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-          className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 flex flex-col rounded-2xl border border-[var(--vault-border)] bg-[var(--vault-panel)] shadow-2xl sm:max-w-2xl sm:w-[90vw] sm:max-h-[85vh]"
+          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 flex flex-col rounded-2xl border border-[var(--vault-border)] bg-[var(--vault-panel)] shadow-2xl sm:max-w-2xl sm:w-[90vw] max-h-[calc(100vh-2rem)] sm:max-h-[85vh]"
         >
         {/* ─── Hero Header ─── */}
         <div className={`relative shrink-0 overflow-hidden rounded-t-2xl bg-gradient-to-br ${config.gradient}`}>
@@ -662,9 +673,9 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                       </motion.button>
                     </div>
                   </div>
-                  <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
+                  <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
                     {displayItem.visibility === 'private' ? (
-                      <div className="flex h-full min-h-[226px] items-center justify-center">
+                      <div className="flex h-full items-center justify-center py-6">
                         <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                           <Lock className="h-8 w-8" />
                           <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
@@ -673,7 +684,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                     ) : gravityEnabled ? (
                       <div
                         ref={contentRef}
-                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                       >
                         {gravityWords.map(w =>
                           w.isSpace ? (
@@ -692,7 +703,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                       </div>
                     ) : (
                       <div
-                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                        className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                         dangerouslySetInnerHTML={{ __html: displayItem.content }}
                       />
                     )}
@@ -862,9 +873,9 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                   </motion.button>
                 </div>
               </div>
-              <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3 min-h-[250px]">
+              <div className="vault-glass-card overflow-hidden rounded-xl border border-[var(--vault-border)] px-4 py-3">
                 {displayItem.visibility === 'private' ? (
-                  <div className="flex h-full min-h-[226px] items-center justify-center">
+                  <div className="flex h-full items-center justify-center py-6">
                     <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                       <Lock className="h-8 w-8" />
                       <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
@@ -873,7 +884,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                 ) : gravityEnabled ? (
                   <div
                     ref={contentRef}
-                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                   >
                     {gravityWords.map(w =>
                       w.isSpace ? (
@@ -892,7 +903,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                   </div>
                 ) : (
                   <div
-                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full min-h-[226px] relative"
+                    className="vault-editor-content prose prose-sm max-w-none text-sm text-[var(--vault-text)] h-full relative"
                     dangerouslySetInnerHTML={{ __html: displayItem.content }}
                   />
                 )}

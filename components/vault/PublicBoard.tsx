@@ -265,7 +265,9 @@ export default function PublicBoard() {
   }, [checkFilterScroll, isSignedIn]);
 
   // Fetch tags for dropdown
-  const { data: availableTags = [] } = trpc.vault.getAllTags.useQuery();
+  const { data: availableTags = [] } = trpc.vault.getAllTags.useQuery(undefined, {
+    staleTime: 60 * 1000, // 1 min — tags don't change often
+  });
 
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
@@ -688,7 +690,7 @@ export default function PublicBoard() {
                   index={0}
                 />
                 <CardGrid
-                  items={filteredItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
+                  items={[...filteredItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
                   indexOffset={0}
                   onItemClick={handleItemClick}
                   onStatsClick={handleStatsClick}
