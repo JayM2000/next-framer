@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, memo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Matter from 'matter-js';
+// Matter.js is dynamically imported in the gravity effect to reduce initial bundle size
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import {
@@ -106,7 +106,7 @@ function InteractiveCodeBlock({ code, onCopyLine }: { code: string; onCopyLine: 
 }
 
 const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, initialTab = 'rendered' }: Props) {
-  console.log(initialTab, 'initialTab');
+
   const [cachedItem, setCachedItem] = useState<VaultItem | null>(item);
   useEffect(() => {
     if (item) setCachedItem(item);
@@ -124,9 +124,11 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
   const contentRef = useRef<HTMLDivElement>(null);
   const [gravityEnabled, setGravityEnabled] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
-  const engineRef = useRef<Matter.Engine | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const engineRef = useRef<any>(null);
   const rafRef = useRef<number | null>(null);
-  const bodiesMapRef = useRef<Map<string, Matter.Body>>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bodiesMapRef = useRef<Map<string, any>>(new Map());
 
   // Parse plainText into individual word tokens for gravity rendering
   const gravityWords = useMemo(() => {
@@ -146,8 +148,13 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
       rafRef.current = null;
     }
     if (engineRef.current) {
-      Matter.Engine.clear(engineRef.current);
-      engineRef.current = null;
+      // Dynamic import cached by bundler — this is synchronous after first load
+      import('matter-js').then((M) => {
+        if (engineRef.current) {
+          M.default.Engine.clear(engineRef.current);
+          engineRef.current = null;
+        }
+      });
     }
     bodiesMapRef.current.clear();
   }, []);
@@ -157,106 +164,110 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
     if (!gravityEnabled || !contentRef.current) return;
     const container = contentRef.current;
 
-    // Wait one frame for React to paint the word spans
-    requestAnimationFrame(() => {
-      const wordEls = Array.from(container.querySelectorAll('.gravity-word')) as HTMLElement[];
-      if (wordEls.length === 0) return;
+    // Dynamically import Matter.js — only loaded when gravity is actually used
+    import('matter-js').then(({ default: Matter }) => {
+      // Wait one frame for React to paint the word spans
+      requestAnimationFrame(() => {
+        const wordEls = Array.from(container.querySelectorAll('.gravity-word')) as HTMLElement[];
+        if (wordEls.length === 0) return;
 
-      const containerRect = container.getBoundingClientRect();
-      // Use the outer glass card (with the visible border) for wall boundaries
-      const outerCard = container.parentElement;
-      const outerRect = outerCard ? outerCard.getBoundingClientRect() : containerRect;
-      const W = containerRect.width;
-      // H = distance from top of inner content to bottom of outer card border
-      const H = outerRect.bottom - containerRect.top;
+        const containerRect = container.getBoundingClientRect();
+        // Use the outer glass card (with the visible border) for wall boundaries
+        const outerCard = container.parentElement;
+        const outerRect = outerCard ? outerCard.getBoundingClientRect() : containerRect;
+        const W = containerRect.width;
+        // H = distance from top of inner content to bottom of outer card border
+        const H = outerRect.bottom - containerRect.top;
 
-      // Create Matter.js engine
-      const engine = Matter.Engine.create({
-        gravity: { x: 0, y: 1.8, scale: 0.001 },
-      });
-      engineRef.current = engine;
-
-      // Create static walls (bottom, left, right)
-      const wallThickness = 20;
-      const walls = [
-        // Bottom wall — flush with outer card's bottom border
-        Matter.Bodies.rectangle(W / 2, H + wallThickness / 2, W + 40, wallThickness, { isStatic: true, restitution: 0.3 }),
-        // Left wall
-        Matter.Bodies.rectangle(-wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
-        // Right wall
-        Matter.Bodies.rectangle(W + wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
-      ];
-      Matter.Composite.add(engine.world, walls);
-
-      // Create bodies for each word
-      const newBodiesMap = new Map<string, Matter.Body>();
-
-      wordEls.forEach(el => {
-        const elRect = el.getBoundingClientRect();
-        const letters = parseInt(el.dataset.letters || '1', 10);
-
-        // Position relative to container
-        const x = elRect.left - containerRect.left + elRect.width / 2;
-        const y = elRect.top - containerRect.top + elRect.height / 2;
-
-        const body = Matter.Bodies.rectangle(x, y, elRect.width, elRect.height, {
-          mass: Math.max(0.5, letters * 0.3),
-          restitution: Math.max(0.2, 0.7 - letters * 0.03), // Heavier = less bouncy
-          friction: 0.4,
-          frictionAir: 0.01,
-          angle: 0,
+        // Create Matter.js engine
+        const engine = Matter.Engine.create({
+          gravity: { x: 0, y: 1.8, scale: 0.001 },
         });
+        engineRef.current = engine;
 
-        // Give a small random horizontal push for visual variety
-        Matter.Body.setVelocity(body, {
-          x: (Math.random() - 0.5) * 2,
-          y: 0,
-        });
+        // Create static walls (bottom, left, right)
+        const wallThickness = 20;
+        const walls = [
+          // Bottom wall — flush with outer card's bottom border
+          Matter.Bodies.rectangle(W / 2, H + wallThickness / 2, W + 40, wallThickness, { isStatic: true, restitution: 0.3 }),
+          // Left wall
+          Matter.Bodies.rectangle(-wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
+          // Right wall
+          Matter.Bodies.rectangle(W + wallThickness / 2, H / 2, wallThickness, H * 2, { isStatic: true, restitution: 0.3 }),
+        ];
+        Matter.Composite.add(engine.world, walls);
 
-        const key = el.dataset.wordId || el.textContent || String(Math.random());
-        newBodiesMap.set(key, body);
-        el.dataset.bodyKey = key;
+        // Create bodies for each word
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newBodiesMap = new Map<string, any>();
 
-        Matter.Composite.add(engine.world, body);
-      });
-
-      bodiesMapRef.current = newBodiesMap;
-
-      // Store original positions for each word element
-      wordEls.forEach(el => {
-        const elRect = el.getBoundingClientRect();
-        el.dataset.origX = String(elRect.left - containerRect.left + elRect.width / 2);
-        el.dataset.origY = String(elRect.top - containerRect.top + elRect.height / 2);
-      });
-
-      // Animation loop: step physics and sync DOM
-      let lastTime = performance.now();
-      const step = (time: number) => {
-        const delta = Math.min(time - lastTime, 16.667); // Cap to recommended max
-        lastTime = time;
-
-        Matter.Engine.update(engine, delta);
-
-        // Sync DOM positions
         wordEls.forEach(el => {
-          const key = el.dataset.bodyKey;
-          if (!key) return;
-          const body = newBodiesMap.get(key);
-          if (!body) return;
+          const elRect = el.getBoundingClientRect();
+          const letters = parseInt(el.dataset.letters || '1', 10);
 
-          const origX = parseFloat(el.dataset.origX || '0');
-          const origY = parseFloat(el.dataset.origY || '0');
+          // Position relative to container
+          const x = elRect.left - containerRect.left + elRect.width / 2;
+          const y = elRect.top - containerRect.top + elRect.height / 2;
 
-          const dx = body.position.x - origX;
-          const dy = body.position.y - origY;
-          const angle = body.angle * (180 / Math.PI);
+          const body = Matter.Bodies.rectangle(x, y, elRect.width, elRect.height, {
+            mass: Math.max(0.5, letters * 0.3),
+            restitution: Math.max(0.2, 0.7 - letters * 0.03), // Heavier = less bouncy
+            friction: 0.4,
+            frictionAir: 0.01,
+            angle: 0,
+          });
 
-          el.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle}deg)`;
+          // Give a small random horizontal push for visual variety
+          Matter.Body.setVelocity(body, {
+            x: (Math.random() - 0.5) * 2,
+            y: 0,
+          });
+
+          const key = el.dataset.wordId || el.textContent || String(Math.random());
+          newBodiesMap.set(key, body);
+          el.dataset.bodyKey = key;
+
+          Matter.Composite.add(engine.world, body);
         });
 
+        bodiesMapRef.current = newBodiesMap;
+
+        // Store original positions for each word element
+        wordEls.forEach(el => {
+          const elRect = el.getBoundingClientRect();
+          el.dataset.origX = String(elRect.left - containerRect.left + elRect.width / 2);
+          el.dataset.origY = String(elRect.top - containerRect.top + elRect.height / 2);
+        });
+
+        // Animation loop: step physics and sync DOM
+        let lastTime = performance.now();
+        const step = (time: number) => {
+          const delta = Math.min(time - lastTime, 16.667); // Cap to recommended max
+          lastTime = time;
+
+          Matter.Engine.update(engine, delta);
+
+          // Sync DOM positions
+          wordEls.forEach(el => {
+            const key = el.dataset.bodyKey;
+            if (!key) return;
+            const body = newBodiesMap.get(key);
+            if (!body) return;
+
+            const origX = parseFloat(el.dataset.origX || '0');
+            const origY = parseFloat(el.dataset.origY || '0');
+
+            const dx = body.position.x - origX;
+            const dy = body.position.y - origY;
+            const angle = body.angle * (180 / Math.PI);
+
+            el.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle}deg)`;
+          });
+
+          rafRef.current = requestAnimationFrame(step);
+        };
         rafRef.current = requestAnimationFrame(step);
-      };
-      rafRef.current = requestAnimationFrame(step);
+      });
     });
 
     return () => cleanupPhysics();

@@ -42,7 +42,7 @@ interface Props {
 export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
   // ── State ──
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [, setImageFile] = useState<File | null>(null);
   const [mode, setMode] = useState<'all' | 'region'>('all');
   const [selectionRect, setSelectionRect] = useState<Rect | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);

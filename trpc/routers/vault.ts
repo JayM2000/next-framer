@@ -447,7 +447,12 @@ export const vaultRouter = createTRPCRouter({
     const userId = await resolveUserId(ctx.clerkUserId!);
 
     const items = await query<VaultItemRow>(
-      `SELECT * FROM vault_items
+      `SELECT id, user_id, type, visibility, title, content, plain_text,
+              site_url, site_username, encrypted_password, images_json,
+              is_important, is_encrypted, encrypted_content, encrypted_plain_text,
+              encrypted_username, encryption_iv, copy_count, is_deleted,
+              created_at, updated_at
+       FROM vault_items
        WHERE user_id = $1
        ORDER BY created_at DESC`,
       [userId]
@@ -550,7 +555,11 @@ export const vaultRouter = createTRPCRouter({
         }
 
         items = await query<PublicItemRow>(
-          `SELECT vi.*,
+          `SELECT vi.id, vi.user_id, vi.type, vi.visibility, vi.title, vi.content,
+                  vi.plain_text, vi.site_url, vi.site_username, vi.encrypted_password,
+                  vi.images_json, vi.is_important, vi.is_encrypted, vi.encrypted_content,
+                  vi.encrypted_plain_text, vi.encrypted_username, vi.encryption_iv,
+                  vi.copy_count, vi.is_deleted, vi.created_at, vi.updated_at,
                   u.name       AS owner_name,
                   COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
            FROM vault_items vi
@@ -565,7 +574,11 @@ export const vaultRouter = createTRPCRouter({
       } else {
         // First page — no cursor
         items = await query<PublicItemRow>(
-          `SELECT vi.*,
+          `SELECT vi.id, vi.user_id, vi.type, vi.visibility, vi.title, vi.content,
+                  vi.plain_text, vi.site_url, vi.site_username, vi.encrypted_password,
+                  vi.images_json, vi.is_important, vi.is_encrypted, vi.encrypted_content,
+                  vi.encrypted_plain_text, vi.encrypted_username, vi.encryption_iv,
+                  vi.copy_count, vi.is_deleted, vi.created_at, vi.updated_at,
                   u.name       AS owner_name,
                   COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
            FROM vault_items vi
@@ -1029,40 +1042,27 @@ export const vaultRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = await resolveUserId(ctx.clerkUserId!);
 
-      // Passwords can never be made public — block the toggle
-      const existing = await query<VaultItemRow>(
-        `SELECT type, visibility FROM vault_items WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE`,
-        [input.id, userId]
-      );
-
-      if (!existing.length) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Item not found",
-        });
-      }
-
-      if (existing[0].type === "password" && existing[0].visibility === "private") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Password items must remain private",
-        });
-      }
-
+      // Combined verify + update: passwords can never be made public
       const result = await query<VaultItemRow>(
         `UPDATE vault_items
          SET visibility = CASE WHEN visibility = 'public' THEN 'private' ELSE 'public' END,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE
+           AND NOT (type = 'password' AND visibility = 'private')
          RETURNING *`,
         [input.id, userId]
       );
 
       if (!result.length) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Item not found",
-        });
+        // Determine if it's not found or forbidden
+        const exists = await query<{ type: string; visibility: string }>(
+          `SELECT type, visibility FROM vault_items WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE`,
+          [input.id, userId]
+        );
+        if (exists.length && exists[0].type === 'password' && exists[0].visibility === 'private') {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Password items must remain private" });
+        }
+        throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
       }
 
       // Fetch tags
@@ -1087,18 +1087,7 @@ export const vaultRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = await resolveUserId(ctx.clerkUserId!);
 
-      const existing = await query<VaultItemRow>(
-        `SELECT id FROM vault_items WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE`,
-        [input.id, userId]
-      );
-
-      if (!existing.length) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Item not found",
-        });
-      }
-
+      // Combined verify + update in a single query
       const result = await query<VaultItemRow>(
         `UPDATE vault_items
          SET is_important = NOT is_important,
@@ -1109,10 +1098,7 @@ export const vaultRouter = createTRPCRouter({
       );
 
       if (!result.length) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Item not found",
-        });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
       }
 
       const tagRows = await query<ItemTagRow>(
@@ -1139,7 +1125,7 @@ export const vaultRouter = createTRPCRouter({
          WHERE id = $1 AND visibility = 'public' AND is_deleted = FALSE`,
         [input.id]
       );
-      (global as any).vaultEventEmitter?.emit('vault:update');
+      // Intentionally no socket emit — copy count bumps don't need to broadcast to all clients
       return { success: true };
     }),
 
@@ -1170,29 +1156,21 @@ export const vaultRouter = createTRPCRouter({
   getUserSettings: protectedProcedure.query(async ({ ctx }) => {
     const userId = await resolveUserId(ctx.clerkUserId!);
 
-    // Upsert: ensure row exists with defaults
+    // Upsert + return in a single round-trip using CTE
     const rows = await query<UserSettingsRow>(
-      `INSERT INTO user_settings (user_id)
-       VALUES ($1)
-       ON CONFLICT (user_id) DO NOTHING
-       RETURNING *`,
-      [userId]
-    );
-
-    if (rows.length > 0) return {
-      showProfileOnPublic: rows[0].show_profile_on_public,
-      autoTagEnabled: rows[0].auto_tag_enabled,
-    };
-
-    // Row already existed — fetch it
-    const existing = await query<UserSettingsRow>(
-      `SELECT * FROM user_settings WHERE user_id = $1`,
+      `WITH ensure_row AS (
+         INSERT INTO user_settings (user_id)
+         VALUES ($1)
+         ON CONFLICT (user_id) DO NOTHING
+       )
+       SELECT user_id, show_profile_on_public, auto_tag_enabled
+       FROM user_settings WHERE user_id = $1`,
       [userId]
     );
 
     return {
-      showProfileOnPublic: existing[0]?.show_profile_on_public ?? false,
-      autoTagEnabled: existing[0]?.auto_tag_enabled ?? true,
+      showProfileOnPublic: rows[0]?.show_profile_on_public ?? false,
+      autoTagEnabled: rows[0]?.auto_tag_enabled ?? true,
     };
   }),
 
