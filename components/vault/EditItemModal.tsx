@@ -12,6 +12,7 @@ import {
 import TagInput from './TagInput';
 import PasswordGenerator from './PasswordGenerator';
 import dynamic from 'next/dynamic';
+import { ClientDate } from './ClientDate';
 
 const RichEditor = dynamic(() => import('./RichEditor'), { ssr: false });
 
@@ -110,15 +111,7 @@ export default function EditItemModal({ item, onClose }: Props) {
   const config = typeConfig[displayItem.type];
   const TypeIcon = config.icon;
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-  };
-
-  const formatTime = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  };
+  // Date formatting handled by ClientDate component (client-side only)
 
   return (
     <AnimatePresence>
@@ -261,7 +254,7 @@ export default function EditItemModal({ item, onClose }: Props) {
                     </div>
                     <div>
                       <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Created</p>
-                      <p className="text-xs text-[var(--vault-text)]">{formatDate(displayItem.createdAt)}</p>
+                      <p className="text-xs text-[var(--vault-text)]"><ClientDate dateStr={displayItem.createdAt} format="date" /></p>
                     </div>
                   </div>
                   {/* Updated */}
@@ -271,7 +264,7 @@ export default function EditItemModal({ item, onClose }: Props) {
                     </div>
                     <div>
                       <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--vault-muted)]">Last Updated</p>
-                      <p className="text-xs text-[var(--vault-text)]">{formatDate(displayItem.updatedAt)} at {formatTime(displayItem.updatedAt)}</p>
+                      <p className="text-xs text-[var(--vault-text)]"><ClientDate dateStr={displayItem.updatedAt} format="datetime" /></p>
                     </div>
                   </div>
                 </div>

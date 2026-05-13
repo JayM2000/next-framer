@@ -296,6 +296,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
             tags: item.tags?.map((t) => ({ label: t.label, color: t.color })),
             isImportant: item.isImportant,
             autoTagEnabled: userSettingsRef.current?.autoTagEnabled,
+            expiresAt: item.expiresAt,
+            isContentEncrypted: item.isContentEncrypted,
           };
 
           createMutation.mutate(payload, {

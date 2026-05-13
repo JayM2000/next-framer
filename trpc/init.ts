@@ -1,16 +1,23 @@
 import db from "@/db";
 // import { users } from "@/db/schemas/usersSchema";
 import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { cache } from "react";
 import superjson from "superjson";
 
 export const createTRPCContext = cache(async () => {
   const { userId, isAuthenticated } = await auth();
+  const headersList = await headers();
+  const clientIp =
+    headersList.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || headersList.get('x-real-ip')
+    || 'unknown';
 
   return {
     clerkUserId: userId,
     isAuthenticated,
+    clientIp,
   };
 });
 
