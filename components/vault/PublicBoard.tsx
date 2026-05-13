@@ -8,7 +8,7 @@ import ItemDetailModal from './ItemDetailModal';
 import EditItemModal from './EditItemModal';
 import {
   Inbox, Loader2, Flame, FileText, KeyRound, Clipboard,
-  Sparkles, Clock, Link2, User, ListFilter, Star, Tag
+  Sparkles, Clock, Link2, User, ListFilter, Star, Tag, RefreshCw
 } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/types';
 import {
@@ -227,6 +227,7 @@ const CardGrid = memo(function CardGrid({
 export default function PublicBoard() {
   const { isSignedIn } = useAuth();
   const { state, isLoading, isRefetching, currentDbUserId, fetchNextPublicPage, hasNextPublicPage, isFetchingNextPublicPage } = useVault();
+  const utils = trpc.useUtils();
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -503,6 +504,25 @@ export default function PublicBoard() {
           <span className="text-xs font-normal text-[var(--vault-muted)]">
             {totalCount} items
           </span>
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.85 }}
+            onClick={() => {
+              const el = document.getElementById('pb-reload-icon');
+              if (el) { el.style.transition = 'transform 0.6s cubic-bezier(0.4,0,0.2,1)'; el.style.transform = 'rotate(360deg)'; setTimeout(() => { el.style.transition = 'none'; el.style.transform = 'rotate(0deg)'; }, 620); }
+              utils.vault.getPublicItemsPaginated.invalidate();
+              utils.vault.getItems.invalidate();
+            }}
+            className="relative flex h-6 w-6 items-center justify-center rounded-lg border border-transparent hover:border-[var(--vault-gold)]/30 hover:bg-[var(--vault-gold)]/10 transition-all duration-200 cursor-pointer group"
+            title="Reload board"
+          >
+            <RefreshCw
+              id="pb-reload-icon"
+              className={`h-3.5 w-3.5 text-[var(--vault-muted)] group-hover:text-[var(--vault-gold)] transition-colors duration-200 ${isRefetching ? 'animate-spin text-[var(--vault-gold)]' : ''}`}
+            />
+            {/* Glow ring on hover */}
+            <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ boxShadow: '0 0 12px -2px rgba(201,168,76,0.25)' }} />
+          </motion.button>
           {isRefetching && (
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}

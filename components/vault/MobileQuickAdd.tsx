@@ -4,10 +4,11 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useVault } from '@/lib/vault/store';
-import { Zap, X, Plus, Loader2, Sparkles } from 'lucide-react';
+import { Zap, X, Plus, Loader2, Sparkles, Shield } from 'lucide-react';
 import type { VaultItem, Tag } from '@/lib/vault/types';
 import TagInput from './TagInput';
 import SettingsModal from './SettingsModal';
+import ExpiryPicker from './ExpiryPicker';
 
 const RichEditor = dynamic(() => import('./RichEditor'), { ssr: false });
 
@@ -19,6 +20,8 @@ export default function MobileQuickAdd() {
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState<Tag[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [encryptContent, setEncryptContent] = useState(false);
 
   const isContentEmpty = !plainText.trim() && content.replace(/<[^>]*>?/gm, '').trim() === '';
 
@@ -38,6 +41,8 @@ export default function MobileQuickAdd() {
       tags,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isContentEncrypted: encryptContent,
+      ...(expiresAt && { expiresAt }),
     };
 
     dispatch({
@@ -49,12 +54,14 @@ export default function MobileQuickAdd() {
         setPlainText('');
         setTitle('');
         setTags([]);
+        setExpiresAt(null);
+        setEncryptContent(false);
       },
       onSettled: () => {
         setOpen(false);
       }
     });
-  }, [content, plainText, title, tags, isContentEmpty, dispatch, showToast]);
+  }, [content, plainText, title, tags, expiresAt, isContentEmpty, dispatch, showToast]);
 
   return (
     <>
@@ -156,6 +163,49 @@ export default function MobileQuickAdd() {
                   <TagInput tags={tags} onChange={setTags} />
                 </div>
 
+                {/* Encrypt Content Toggle */}
+                <div
+                  className={`relative overflow-hidden rounded-lg border p-2.5 flex items-center justify-between gap-2 transition-all duration-300 cursor-pointer ${
+                    encryptContent
+                      ? 'border-[var(--vault-gold)]/40 bg-gradient-to-r from-[var(--vault-gold)]/10 via-amber-500/5 to-transparent'
+                      : 'border-[var(--vault-border)] bg-[var(--vault-glass)]'
+                  }`}
+                  onClick={() => setEncryptContent(!encryptContent)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-md transition-all duration-300 ${
+                      encryptContent
+                        ? 'bg-[var(--vault-gold)]/20 text-[var(--vault-gold)]'
+                        : 'bg-[var(--vault-glass-hover)] text-[var(--vault-muted)]'
+                    }`}>
+                      <Shield className="h-3 w-3" />
+                    </div>
+                    <div>
+                      <p className={`text-[11px] font-semibold transition-colors duration-300 ${
+                        encryptContent ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-text)]'
+                      }`}>Encrypt Content</p>
+                      <p className="text-[9px] text-[var(--vault-muted)] leading-tight">
+                        {encryptContent ? 'Hidden — copy to reveal' : 'Publicly visible'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={encryptContent}
+                    onClick={(e) => { e.stopPropagation(); setEncryptContent(!encryptContent); }}
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${
+                      encryptContent
+                        ? 'bg-gradient-to-r from-[var(--vault-gold)] to-amber-600'
+                        : 'bg-[var(--vault-muted)]/30'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-all duration-300 ${
+                      encryptContent ? 'ml-[18px]' : 'ml-[3px]'
+                    }`} />
+                  </button>
+                </div>
+
                 {/* Content (mandatory) */}
                 <div className="min-h-[120px]">
                   <RichEditor
@@ -164,6 +214,9 @@ export default function MobileQuickAdd() {
                     placeholder="Paste your snippet..."
                   />
                 </div>
+
+                {/* Expiry Picker */}
+                <ExpiryPicker value={expiresAt} onChange={setExpiresAt} compact />
               </div>
 
               {/* Fixed Footer — Save Button */}

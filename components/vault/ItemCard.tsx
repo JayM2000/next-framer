@@ -2,11 +2,13 @@
 
 import { useState, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, ExternalLink, Star } from 'lucide-react';
+import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, ExternalLink, Star, Shield, Loader2 } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import UserProfileHoverCard from './UserProfileHoverCard';
+import { trpc } from '@/trpc/client';
+import { ClientDateShort } from './ClientDate';
 
 const typeIcons = {
   password: KeyRound,
@@ -37,12 +39,33 @@ interface Props {
 const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
   const { dispatch, copyToClipboard, currentDbUserId, userSettings } = useVault();
   const [copied, setCopied] = useState(false);
+  const [decrypting, setDecrypting] = useState(false);
   const Icon = typeIcons[item.type];
   const isClipboard = item.type === 'clipboard';
   const isOwner = currentDbUserId !== null && item.userId === currentDbUserId;
+  const utils = trpc.useUtils();
 
-  const handleQuickCopy = (e: React.MouseEvent) => {
+  const handleQuickCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // If content-encrypted, decrypt first via API then copy
+    if (item.isContentEncrypted) {
+      setDecrypting(true);
+      try {
+        const result = await utils.vault.decryptContent.fetch({ id: item.id });
+        copyToClipboard(result.plainText, 'Decrypted & copied!');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+        if (item.visibility === 'public') {
+          dispatch({ type: 'INCREMENT_COPY_COUNT', id: item.id });
+        }
+      } catch {
+        copyToClipboard('', 'Failed to decrypt');
+      } finally {
+        setDecrypting(false);
+      }
+      return;
+    }
     
     copyToClipboard(item.plainText);
     setCopied(true);
@@ -111,7 +134,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
             <h3 className="truncate text-sm font-semibold text-[var(--vault-text)]">{item.title}</h3>
           </div>
           <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[var(--vault-muted)] min-w-0">
-            <span className="shrink-0">{new Date(item.createdAt).toLocaleDateString()}</span>
+            <span className="shrink-0"><ClientDateShort dateStr={item.createdAt} /></span>
             <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-[var(--vault-muted)] opacity-50" />
             {(() => {
               const showProfileEnabled = userSettings?.showProfileOnPublic ?? false;
@@ -171,10 +194,17 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
       {/* Content Preview */}
       <div className="flex-1 px-4 pb-2">
-        <div
-          className="vault-content-preview pointer-events-none text-xs text-[var(--vault-muted)] line-clamp-3"
-          dangerouslySetInnerHTML={{ __html: item.content }}
-        />
+        {item.isContentEncrypted ? (
+          <div className="flex items-center gap-2 py-2 text-[var(--vault-muted)]/60">
+            <Shield className="h-3.5 w-3.5 text-[var(--vault-gold)]/60" />
+            <span className="text-[11px] font-medium italic text-[var(--vault-gold)]/70">Encrypted content — copy to reveal</span>
+          </div>
+        ) : (
+          <div
+            className="vault-content-preview pointer-events-none text-xs text-[var(--vault-muted)] line-clamp-3"
+            dangerouslySetInnerHTML={{ __html: item.content }}
+          />
+        )}
       </div>
 
       {/* Extracted URL Links — hidden for private items */}
@@ -232,11 +262,12 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
         <motion.button
           whileTap={{ scale: 1.1 }}
           onClick={handleQuickCopy}
-          className={`vault-action-btn transition-all ${copied ? 'text-emerald-400' : ''}`}
-          title="Copy content"
+          disabled={decrypting}
+          className={`vault-action-btn transition-all ${copied ? 'text-emerald-400' : ''} ${decrypting ? 'opacity-60' : ''}`}
+          title={item.isContentEncrypted ? 'Decrypt & copy' : 'Copy content'}
         >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          <span>{copied ? 'Copied!' : 'Copy'}</span>
+          {decrypting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : copied ? <Check className="h-3.5 w-3.5" /> : item.isContentEncrypted ? <Shield className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          <span>{decrypting ? 'Decrypting...' : copied ? 'Copied!' : item.isContentEncrypted ? 'Decrypt & Copy' : 'Copy'}</span>
         </motion.button>
         {isOwner && (
           <button

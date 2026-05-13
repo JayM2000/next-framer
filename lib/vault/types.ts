@@ -29,6 +29,10 @@ export interface VaultItem {
   images?: string[];     // base64 data URLs
   // Extracted clickable URLs from content:
   extractedUrls?: { url: string; label: string }[];
+  // Opt-in content encryption for public items:
+  isContentEncrypted?: boolean; // content is encrypted, only revealed on copy
+  // Item expiry (for anonymous items):
+  expiresAt?: string;          // ISO date string — null means no expiry
   // Owner info (populated on public items):
   ownerName?: string;         // author display name (from DB join)
   ownerShowProfile?: boolean; // whether owner enabled public profile visibility

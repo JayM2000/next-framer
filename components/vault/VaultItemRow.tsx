@@ -9,6 +9,7 @@ import {
 import { useVault } from '@/lib/vault/store';
 import type { VaultItem } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ClientDateShort } from './ClientDate';
 
 /* ─── Colour palette per type (distinct from public cards) ─── */
 const palette = {
@@ -163,7 +164,7 @@ export default function VaultItemRow({
             )}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--vault-muted)]">
-            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+            <span><ClientDateShort dateStr={item.createdAt} /></span>
             <span className="h-0.5 w-0.5 rounded-full bg-[var(--vault-muted)] opacity-40" />
             <span className="inline-flex items-center gap-0.5 rounded-sm px-1 py-px text-[9px] font-medium"
               style={{ backgroundColor: p.iconBg, color: p.accent }}
@@ -203,6 +204,11 @@ export default function VaultItemRow({
           <div className="flex items-center gap-2 rounded-lg p-2 mt-0.5" style={{ background: 'var(--vault-glass)' }}>
             <Lock className="h-3 w-3 shrink-0 text-[var(--vault-muted)] opacity-60" />
             <span className="text-xs font-medium italic text-[var(--vault-muted)] opacity-60">••• Private Content •••</span>
+          </div>
+        ) : item.isContentEncrypted ? (
+          <div className="flex items-center gap-2 rounded-lg p-2 mt-0.5" style={{ background: 'var(--vault-glass)' }}>
+            <Shield className="h-3 w-3 shrink-0 text-[var(--vault-gold)] opacity-70" />
+            <span className="text-xs font-medium italic text-[var(--vault-gold)] opacity-70">Encrypted content — copy to reveal</span>
           </div>
         ) : (
           <div

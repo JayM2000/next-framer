@@ -9,8 +9,10 @@ import {
   X, Copy, Trash2, Lock, Globe, KeyRound, FileText, Clipboard,
   Eye, EyeOff, ExternalLink, Calendar, Clock, Tag as TagIcon,
   Download, Check, Hash, Type, AlignLeft, Code2,
-  Sparkles, Pencil, RotateCcw,
+  Sparkles, Pencil, RotateCcw, Shield, Loader2,
 } from 'lucide-react';
+import { trpc } from '@/trpc/client';
+import { ClientDate } from './ClientDate';
 
 const typeConfig = {
   password: { icon: KeyRound, color: '#c9a84c', label: 'Password', gradient: 'from-amber-500/20 to-yellow-600/10' },
@@ -120,6 +122,8 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
+  const [decrypting, setDecrypting] = useState(false);
+  const utils = trpc.useUtils();
   
   const contentRef = useRef<HTMLDivElement>(null);
   const [gravityEnabled, setGravityEnabled] = useState(false);
@@ -351,12 +355,29 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
   const isClipboard = displayItem.type === 'clipboard';
 
   const handleCopy = (text: string, field: string) => {
-
     copyToClipboard(text, `${field} copied!`);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
     if (displayItem.visibility === 'public') {
       dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+    }
+  };
+
+  const handleDecryptCopy = async (field: string) => {
+    if (!displayItem.isContentEncrypted) return;
+    setDecrypting(true);
+    try {
+      const result = await utils.vault.decryptContent.fetch({ id: displayItem.id });
+      copyToClipboard(result.plainText, 'Decrypted & copied!');
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+      if (displayItem.visibility === 'public') {
+        dispatch({ type: 'INCREMENT_COPY_COUNT', id: displayItem.id });
+      }
+    } catch {
+      showToast('Failed to decrypt content', 'error');
+    } finally {
+      setDecrypting(false);
     }
   };
 
@@ -387,15 +408,7 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
     showToast('Downloaded as text file');
   };
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-  };
-
-  const formatTime = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  };
+  // Date formatting handled by ClientDate component (client-side only)
 
   const contentTabs: { id: ContentTab; label: string; icon: React.ElementType }[] = isClipboard
     ? [
@@ -495,6 +508,17 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                     {displayItem.visibility === 'public' ? <Globe className="h-2.5 w-2.5" /> : <Lock className="h-2.5 w-2.5" />}
                     {displayItem.visibility}
                   </motion.span>
+                  {displayItem.isContentEncrypted && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex items-center gap-1 rounded-md bg-[var(--vault-gold)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--vault-gold)]"
+                    >
+                      <Shield className="h-2.5 w-2.5" />
+                      encrypted
+                    </motion.span>
+                  )}
                 </div>
               </div>
             </div>
@@ -665,11 +689,12 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => handleCopy(displayItem.plainText, 'content')}
-                        className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--vault-muted)] transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)]"
+                        disabled={decrypting}
+                        onClick={() => displayItem.isContentEncrypted ? handleDecryptCopy('content') : handleCopy(displayItem.plainText, 'content')}
+                        className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium transition-colors hover:bg-[var(--vault-glass-hover)] hover:text-[var(--vault-text)] ${decrypting ? 'opacity-60' : 'text-[var(--vault-muted)]'}`}
                       >
-                        {copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                        {copiedField === 'content' ? 'Copied!' : 'Copy All'}
+                        {decrypting ? <Loader2 className="h-3 w-3 animate-spin" /> : copiedField === 'content' ? <Check className="h-3 w-3 text-emerald-400" /> : displayItem.isContentEncrypted ? <Shield className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {decrypting ? 'Decrypting...' : copiedField === 'content' ? 'Copied!' : displayItem.isContentEncrypted ? 'Decrypt & Copy' : 'Copy All'}
                       </motion.button>
                     </div>
                   </div>
@@ -679,6 +704,22 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
                         <div className="flex flex-col items-center gap-3 text-[var(--vault-muted)]/60">
                           <Lock className="h-8 w-8" />
                           <p className="text-sm font-medium italic">••• Encrypted Content •••</p>
+                        </div>
+                      </div>
+                    ) : displayItem.isContentEncrypted ? (
+                      <div className="flex h-full items-center justify-center py-8">
+                        <div className="flex flex-col items-center gap-3">
+                          <motion.div
+                            animate={{ scale: [1, 1.05, 1] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--vault-gold)]/20 to-amber-600/10 border border-[var(--vault-gold)]/20"
+                          >
+                            <Shield className="h-7 w-7 text-[var(--vault-gold)]" />
+                          </motion.div>
+                          <p className="text-sm font-semibold text-[var(--vault-text)]">Content Encrypted</p>
+                          <p className="text-xs text-[var(--vault-muted)] text-center max-w-[220px]">
+                            This content is encrypted. Click &ldquo;Decrypt &amp; Copy&rdquo; to reveal and copy.
+                          </p>
                         </div>
                       </div>
                     ) : gravityEnabled ? (
@@ -948,11 +989,11 @@ const ItemDetailModal = memo(function ItemDetailModal({ item, onClose, onEdit, i
           >
             <div className="flex items-center gap-2 text-xs text-[var(--vault-muted)]">
               <Calendar className="h-3.5 w-3.5" />
-              <span>Created {formatDate(displayItem.createdAt)}</span>
+              <span>Created <ClientDate dateStr={displayItem.createdAt} format="date" /></span>
             </div>
             <div className="flex items-center gap-2 text-xs text-[var(--vault-muted)]">
               <Clock className="h-3.5 w-3.5" />
-              <span>Updated {formatDate(displayItem.updatedAt)} at {formatTime(displayItem.updatedAt)}</span>
+              <span>Updated <ClientDate dateStr={displayItem.updatedAt} format="datetime" /></span>
             </div>
           </motion.div>
         </div>

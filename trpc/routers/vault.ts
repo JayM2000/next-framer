@@ -4,6 +4,42 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { encryptItemFieldsServer, decryptItemFieldsServer } from "@/lib/vault/server-crypto";
 
+// ── Rate Limiting (In-Memory) ────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
+const MAX_ANON_ITEMS_PER_HOUR = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+// ── Lazy Expired Item Cleanup (throttled) ────────────────────
+let lastCleanupAt = 0;
+const CLEANUP_INTERVAL_MS = 60 * 1000; // run at most once per 60 seconds
+
+async function cleanupExpiredItems() {
+  const now = Date.now();
+  if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
+  lastCleanupAt = now;
+
+  try {
+    // Delete tags first (foreign key), then the items
+    await query(
+      `DELETE FROM vault_item_tags
+       WHERE item_id IN (
+         SELECT id FROM vault_items
+         WHERE expires_at IS NOT NULL AND expires_at <= NOW()
+       )`
+    );
+    const deleted = await query<{ id: string }>(
+      `DELETE FROM vault_items
+       WHERE expires_at IS NOT NULL AND expires_at <= NOW()
+       RETURNING id`
+    );
+    if (deleted.length > 0) {
+      console.log(`[vault-cleanup] Purged ${deleted.length} expired item(s)`);
+    }
+  } catch (e) {
+    console.error('[vault-cleanup] Failed to purge expired items:', e);
+  }
+}
+
 // ── Zod Schemas ──────────────────────────────────────────────
 
 const tagSchema = z.object({
@@ -24,6 +60,8 @@ const createItemSchema = z.object({
   tags: z.array(tagSchema).optional(),
   isImportant: z.boolean().default(false),
   autoTagEnabled: z.boolean().optional(), // client passes localStorage value for anonymous
+  expiresAt: z.string().optional(), // ISO date string for item expiry (anonymous users)
+  isContentEncrypted: z.boolean().default(false), // opt-in content encryption for public items
 });
 
 const updateItemSchema = z.object({
@@ -57,12 +95,14 @@ interface VaultItemRow {
   images_json: string[] | null;
   is_important: boolean;
   is_encrypted: boolean;
+  is_content_encrypted: boolean;
   encrypted_content: string | null;
   encrypted_plain_text: string | null;
   encrypted_username: string | null;
   encryption_iv: string | null;
   copy_count: number;
   is_deleted: boolean;
+  expires_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -147,12 +187,45 @@ function extractUrls(plainText: string): { url: string; label: string }[] {
 
 function formatItem(
   row: VaultItemRow,
-  tags: { id: number; label: string; color: string }[]
+  tags: { id: number; label: string; color: string }[],
+  /** When true, don't decrypt content-encrypted items (used for list/display endpoints) */
+  maskContentEncrypted = false
 ) {
   let finalPassword = row.encrypted_password ?? undefined;
   let finalUsername = row.site_username ?? undefined;
   let finalContent = row.content;
   let finalPlainText = row.plain_text;
+
+  // If this item has opt-in content encryption AND we're in masking mode,
+  // return empty content with the flag set — don't decrypt for display.
+  if (row.is_content_encrypted && maskContentEncrypted && row.encryption_iv) {
+    return {
+      id: row.id,
+      userId: row.user_id ?? null,
+      type: row.type as "password" | "note" | "clipboard",
+      visibility: row.visibility as "public" | "private",
+      title: row.title,
+      content: '',
+      plainText: '',
+      siteUrl: row.site_url ?? undefined,
+      username: finalUsername,
+      password: finalPassword,
+      images: row.images_json ?? undefined,
+      tags: tags.map((t) => ({
+        id: String(t.id),
+        label: t.label,
+        color: t.color,
+      })),
+      extractedUrls: [],
+      isImportant: row.is_important,
+      isContentEncrypted: true,
+      copyCount: row.copy_count ?? 0,
+      isDeleted: row.is_deleted,
+      expiresAt: row.expires_at ? row.expires_at.toISOString() : undefined,
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+    };
+  }
 
   // Server-side Decryption
   if (row.is_encrypted && row.encryption_iv) {
@@ -170,6 +243,23 @@ function formatItem(
       if (decrypted.plainText) finalPlainText = decrypted.plainText;
     } catch (e) {
       console.error('Failed to decrypt item:', row.id, e);
+    }
+  }
+
+  // Also decrypt content-encrypted items (when NOT masking — e.g. owner's getItems)
+  if (row.is_content_encrypted && row.encryption_iv && !row.is_encrypted) {
+    try {
+      const decrypted = decryptItemFieldsServer({
+        encryptedContent: row.encrypted_content,
+        encryptedPlainText: row.encrypted_plain_text,
+        encryptedPassword: null,
+        encryptedUsername: null,
+        encryptionIv: row.encryption_iv,
+      });
+      if (decrypted.content) finalContent = decrypted.content;
+      if (decrypted.plainText) finalPlainText = decrypted.plainText;
+    } catch (e) {
+      console.error('Failed to decrypt content-encrypted item:', row.id, e);
     }
   }
 
@@ -192,8 +282,10 @@ function formatItem(
     })),
     extractedUrls: extractUrls(finalPlainText),
     isImportant: row.is_important,
+    isContentEncrypted: row.is_content_encrypted,
     copyCount: row.copy_count ?? 0,
     isDeleted: row.is_deleted,
+    expiresAt: row.expires_at ? row.expires_at.toISOString() : undefined,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };
@@ -449,11 +541,12 @@ export const vaultRouter = createTRPCRouter({
     const items = await query<VaultItemRow>(
       `SELECT id, user_id, type, visibility, title, content, plain_text,
               site_url, site_username, encrypted_password, images_json,
-              is_important, is_encrypted, encrypted_content, encrypted_plain_text,
+              is_important, is_encrypted, is_content_encrypted, encrypted_content, encrypted_plain_text,
               encrypted_username, encryption_iv, copy_count, is_deleted,
-              created_at, updated_at
+              expires_at, created_at, updated_at
        FROM vault_items
        WHERE user_id = $1
+         AND (expires_at IS NULL OR expires_at > NOW())
        ORDER BY created_at DESC`,
       [userId]
     );
@@ -494,6 +587,7 @@ export const vaultRouter = createTRPCRouter({
        LEFT JOIN users u         ON u.id = vi.user_id
        LEFT JOIN user_settings us ON us.user_id = vi.user_id
        WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+         AND (vi.expires_at IS NULL OR vi.expires_at > NOW())
        ORDER BY vi.copy_count DESC, vi.created_at DESC`
     );
 
@@ -519,7 +613,7 @@ export const vaultRouter = createTRPCRouter({
 
     // Strip sensitive fields from public items and attach owner info
     return items.map((item) => {
-      const formatted = formatItem(item, tagsByItem.get(item.id) ?? []);
+      const formatted = formatItem(item, tagsByItem.get(item.id) ?? [], true);
       // Never leak passwords on public route
       if (formatted.type === "password") {
         formatted.password = undefined;
@@ -541,6 +635,9 @@ export const vaultRouter = createTRPCRouter({
       })
     )
     .query(async ({ input }) => {
+      // Fire-and-forget: purge expired items from DB (throttled, non-blocking)
+      cleanupExpiredItems().catch(() => {});
+
       const limit = input.limit;
 
       let items: PublicItemRow[];
@@ -557,15 +654,16 @@ export const vaultRouter = createTRPCRouter({
         items = await query<PublicItemRow>(
           `SELECT vi.id, vi.user_id, vi.type, vi.visibility, vi.title, vi.content,
                   vi.plain_text, vi.site_url, vi.site_username, vi.encrypted_password,
-                  vi.images_json, vi.is_important, vi.is_encrypted, vi.encrypted_content,
+                  vi.images_json, vi.is_important, vi.is_encrypted, vi.is_content_encrypted, vi.encrypted_content,
                   vi.encrypted_plain_text, vi.encrypted_username, vi.encryption_iv,
-                  vi.copy_count, vi.is_deleted, vi.created_at, vi.updated_at,
+                  vi.copy_count, vi.is_deleted, vi.expires_at, vi.created_at, vi.updated_at,
                   u.name       AS owner_name,
                   COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
            FROM vault_items vi
            LEFT JOIN users u         ON u.id = vi.user_id
            LEFT JOIN user_settings us ON us.user_id = vi.user_id
            WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+             AND (vi.expires_at IS NULL OR vi.expires_at > NOW())
              AND (vi.created_at, vi.id) < ($1::timestamptz, $2::uuid)
            ORDER BY vi.created_at DESC, vi.id DESC
            LIMIT $3`,
@@ -576,15 +674,16 @@ export const vaultRouter = createTRPCRouter({
         items = await query<PublicItemRow>(
           `SELECT vi.id, vi.user_id, vi.type, vi.visibility, vi.title, vi.content,
                   vi.plain_text, vi.site_url, vi.site_username, vi.encrypted_password,
-                  vi.images_json, vi.is_important, vi.is_encrypted, vi.encrypted_content,
+                  vi.images_json, vi.is_important, vi.is_encrypted, vi.is_content_encrypted, vi.encrypted_content,
                   vi.encrypted_plain_text, vi.encrypted_username, vi.encryption_iv,
-                  vi.copy_count, vi.is_deleted, vi.created_at, vi.updated_at,
+                  vi.copy_count, vi.is_deleted, vi.expires_at, vi.created_at, vi.updated_at,
                   u.name       AS owner_name,
                   COALESCE(us.show_profile_on_public, FALSE) AS owner_show_profile
            FROM vault_items vi
            LEFT JOIN users u         ON u.id = vi.user_id
            LEFT JOIN user_settings us ON us.user_id = vi.user_id
            WHERE vi.visibility = 'public' AND vi.is_deleted = FALSE
+             AND (vi.expires_at IS NULL OR vi.expires_at > NOW())
            ORDER BY vi.created_at DESC, vi.id DESC
            LIMIT $1`,
           [limit + 1]
@@ -624,7 +723,7 @@ export const vaultRouter = createTRPCRouter({
       }
 
       const formattedItems = items.map((item) => {
-        const formatted = formatItem(item, tagsByItem.get(item.id) ?? []);
+        const formatted = formatItem(item, tagsByItem.get(item.id) ?? [], true);
         if (formatted.type === "password") {
           formatted.password = undefined;
         }
@@ -652,6 +751,35 @@ export const vaultRouter = createTRPCRouter({
       const visibility = input.type === "password"
         ? "private"
         : userId ? input.visibility : "public";
+
+      // ── Rate Limiting for Anonymous Users ──
+      if (!userId && ctx.clientIp && ctx.clientIp !== 'unknown') {
+        const now = Date.now();
+        
+        // Basic cleanup to prevent memory leaks if abused heavily
+        if (rateLimitMap.size > 5000) {
+          for (const [ip, record] of rateLimitMap.entries()) {
+            if (now >= record.expiresAt) rateLimitMap.delete(ip);
+          }
+        }
+
+        const record = rateLimitMap.get(ctx.clientIp);
+        if (record && now < record.expiresAt) {
+          if (record.count >= MAX_ANON_ITEMS_PER_HOUR) {
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: "Rate limit exceeded: You can only create 10 items per hour as a guest. Please sign in to create more.",
+            });
+          }
+          record.count += 1;
+        } else {
+          // Reset or create new record
+          rateLimitMap.set(ctx.clientIp, {
+            count: 1,
+            expiresAt: now + RATE_LIMIT_WINDOW_MS,
+          });
+        }
+      }
 
       // Check auto-tag setting
       let autoTagEnabled = input.autoTagEnabled ?? true; // use client value, default true
@@ -681,6 +809,8 @@ export const vaultRouter = createTRPCRouter({
       // Server-Side Encryption
       const isSecureType = input.type === 'password' || input.type === 'note' || input.type === 'clipboard';
       const isEncrypted = visibility === 'private' && isSecureType;
+      // Opt-in content encryption for public items
+      const isContentEncrypted = input.isContentEncrypted && visibility === 'public' && !isEncrypted;
       
       let finalContent = input.content;
       let finalPlainText = input.plainText;
@@ -711,7 +841,46 @@ export const vaultRouter = createTRPCRouter({
         encryptedUsername = encrypted.encryptedUsername;
         encryptedPassword = encrypted.encryptedPassword;
         encryptionIv = encrypted.encryptionIv;
+      } else if (isContentEncrypted) {
+        // Encrypt only content/plainText for public items (title/tags stay visible)
+        const encrypted = encryptItemFieldsServer({
+          content: input.content,
+          plainText: input.plainText,
+          password: undefined,
+          username: undefined,
+        });
+        
+        finalContent = '';
+        finalPlainText = '';
+        encryptedContent = encrypted.encryptedContent;
+        encryptedPlainText = encrypted.encryptedPlainText;
+        encryptionIv = encrypted.encryptionIv;
       }
+
+      // ── Expiry handling (all users — optional) ──
+      let finalExpiresAt: Date | null = null;
+      if (input.expiresAt) {
+        const expiryDate = new Date(input.expiresAt);
+        const nowMs = Date.now();
+        const diffMs = expiryDate.getTime() - nowMs;
+        const MIN_EXPIRY_MS = 60 * 1000;                 // 1 minute
+        const MAX_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
+
+        if (diffMs < MIN_EXPIRY_MS) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Expiry must be at least 1 minute from now",
+          });
+        }
+        if (diffMs > MAX_EXPIRY_MS) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Expiry cannot be more than 1 year from now",
+          });
+        }
+        finalExpiresAt = expiryDate;
+      }
+      // If no expiresAt provided, finalExpiresAt stays null (no auto-deletion)
 
       const result = await withTransaction(async (client) => {
         // Insert the item (user_id may be NULL for anonymous)
@@ -719,8 +888,9 @@ export const vaultRouter = createTRPCRouter({
           `INSERT INTO vault_items
              (user_id, type, visibility, title, content, plain_text,
               site_url, site_username, encrypted_password, images_json, is_important,
-              is_encrypted, encrypted_content, encrypted_plain_text, encrypted_username, encryption_iv)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+              is_encrypted, is_content_encrypted, encrypted_content, encrypted_plain_text, encrypted_username, encryption_iv,
+              expires_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
            RETURNING *`,
           [
             userId,
@@ -735,10 +905,12 @@ export const vaultRouter = createTRPCRouter({
             JSON.stringify(input.images ?? []),
             input.isImportant,
             isEncrypted,
+            isContentEncrypted,
             encryptedContent,
             encryptedPlainText,
             encryptedUsername,
             encryptionIv,
+            finalExpiresAt,
           ]
         );
 
@@ -1127,6 +1299,45 @@ export const vaultRouter = createTRPCRouter({
       );
       // Intentionally no socket emit — copy count bumps don't need to broadcast to all clients
       return { success: true };
+    }),
+
+  // ── Decrypt content for copy (PUBLIC — no auth required) ──
+  decryptContent: baseProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ input }) => {
+      const rows = await query<VaultItemRow>(
+        `SELECT * FROM vault_items WHERE id = $1 AND is_deleted = FALSE`,
+        [input.id]
+      );
+
+      if (!rows.length) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
+      }
+
+      const row = rows[0];
+
+      // Only works for content-encrypted public items
+      if (!row.is_content_encrypted || !row.encryption_iv) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Item is not content-encrypted" });
+      }
+
+      try {
+        const decrypted = decryptItemFieldsServer({
+          encryptedContent: row.encrypted_content,
+          encryptedPlainText: row.encrypted_plain_text,
+          encryptedPassword: null,
+          encryptedUsername: null,
+          encryptionIv: row.encryption_iv,
+        });
+
+        return {
+          plainText: decrypted.plainText ?? '',
+          content: decrypted.content ?? '',
+        };
+      } catch (e) {
+        console.error('Failed to decrypt content for item:', input.id, e);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Decryption failed" });
+      }
     }),
 
   // ── Get all distinct tags (PUBLIC — no auth required) ─────

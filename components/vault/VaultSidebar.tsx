@@ -6,7 +6,7 @@ import { useVault } from '@/lib/vault/store';
 import VaultItemRow from './VaultItemRow';
 import EditItemModal from './EditItemModal';
 import ItemDetailModal from './ItemDetailModal';
-import { Lock, Star, Link2, ListFilter, Tag } from 'lucide-react';
+import { Lock, Star, Link2, ListFilter, Tag, RefreshCw, Loader2 } from 'lucide-react';
 import { SignIn, useUser } from '@clerk/nextjs';
 import type { VaultItem } from '@/lib/vault/types';
 import { trpc } from '@/trpc/client';
@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/select';
 
 export default function VaultSidebar() {
-  const { state } = useVault();
+  const { state, isRefetching } = useVault();
+  const utils = trpc.useUtils();
   const { isLoaded, isSignedIn } = useUser();
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
@@ -155,6 +156,35 @@ export default function VaultSidebar() {
             <span className="text-xs font-normal text-[var(--vault-muted)]">
               {displayedItems.length} items
             </span>
+            <motion.button
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.85 }}
+              onClick={() => {
+                const el = document.getElementById('vs-reload-icon');
+                if (el) { el.style.transition = 'transform 0.6s cubic-bezier(0.4,0,0.2,1)'; el.style.transform = 'rotate(360deg)'; setTimeout(() => { el.style.transition = 'none'; el.style.transform = 'rotate(0deg)'; }, 620); }
+                utils.vault.getItems.invalidate();
+                utils.vault.getPublicItemsPaginated.invalidate();
+              }}
+              className="relative flex h-6 w-6 items-center justify-center rounded-lg border border-transparent hover:border-[var(--vault-gold)]/30 hover:bg-[var(--vault-gold)]/10 transition-all duration-200 cursor-pointer group"
+              title="Reload vault"
+            >
+              <RefreshCw
+                id="vs-reload-icon"
+                className={`h-3.5 w-3.5 text-[var(--vault-muted)] group-hover:text-[var(--vault-gold)] transition-colors duration-200 ${isRefetching ? 'animate-spin text-[var(--vault-gold)]' : ''}`}
+              />
+              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ boxShadow: '0 0 12px -2px rgba(201,168,76,0.25)' }} />
+            </motion.button>
+            {isRefetching && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--vault-gold)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--vault-gold)]"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Syncing
+              </motion.span>
+            )}
           </h2>
 
           <div className="relative w-full md:w-auto flex items-center min-w-0">
