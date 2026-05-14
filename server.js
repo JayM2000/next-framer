@@ -52,8 +52,8 @@ app.prepare().then(() => {
     console.log(`> 🚀 Ready on http://${hostname}:${port}`);
     console.log(`> 🔌 Socket.IO enabled`);
 
-    // ── Expired Items Cleanup (every 1 minute) ──
-    const CLEANUP_INTERVAL_MS = 60 * 1000;
+    // ── Expired Items Cleanup (every 30 seconds) ──
+    const CLEANUP_INTERVAL_MS = 30 * 1000;
 
     // Lightweight pool just for cleanup — reuses same DATABASE_URL
     let cleanupPool = null;
@@ -110,9 +110,9 @@ app.prepare().then(() => {
       }
     }
 
-    // Run cleanup every 5 minutes
+    // Run cleanup every 30 seconds
     setInterval(cleanupExpiredItems, CLEANUP_INTERVAL_MS);
-    // Run once on startup (after a short delay to let env vars load)
-    setTimeout(cleanupExpiredItems, 15000);
+    // Run once on startup (after a short delay to let DB pool initialize)
+    setTimeout(cleanupExpiredItems, 10000);
   });
 });

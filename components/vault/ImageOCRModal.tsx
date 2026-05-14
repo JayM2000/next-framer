@@ -61,7 +61,16 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mounted, setMounted] = useState(false);
 
+  // Refs to mirror state for native (non-React) touch event handlers
+  // Native listeners capture closures, so refs ensure they always read fresh values
+  const isDrawingRef = useRef(false);
+  const drawStartRef = useRef<{ x: number; y: number } | null>(null);
+  const modeRef = useRef<'all' | 'region'>('all');
+
   useEffect(() => { setMounted(true); }, []);
+
+  // Keep modeRef in sync with mode state for native touch handlers
+  useEffect(() => { modeRef.current = mode; }, [mode]);
 
   // ── Reset on close ──
   useEffect(() => {
@@ -75,6 +84,10 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
       setProgress(0);
       setProgressMsg('');
       setError('');
+      // Reset drawing refs
+      isDrawingRef.current = false;
+      drawStartRef.current = null;
+      modeRef.current = 'all';
     }
   }, [open]);
 
@@ -174,20 +187,22 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
     if (file) handleFile(file);
   }, [handleFile]);
 
-  // ── Canvas mouse events for region selection ──
-  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // ── Canvas pointer helpers for region selection (mouse + touch) ──
+  // Also need getCanvasCoords as a stable callback for the native touch handlers
+  const getCanvasCoords = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     };
-  };
+  }, []);
 
+  // ── Mouse handlers ──
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (mode !== 'region') return;
-    const coords = getCanvasCoords(e);
+    const coords = getCanvasCoords(e.clientX, e.clientY);
     setDrawStart(coords);
     setIsDrawing(true);
     setSelectionRect(null);
@@ -195,7 +210,7 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !drawStart || mode !== 'region') return;
-    const coords = getCanvasCoords(e);
+    const coords = getCanvasCoords(e.clientX, e.clientY);
     setSelectionRect({
       x: Math.min(drawStart.x, coords.x),
       y: Math.min(drawStart.y, coords.y),
@@ -208,6 +223,67 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
     setIsDrawing(false);
     setDrawStart(null);
   };
+
+  // ── Touch handlers (mobile region selection) ──
+  // MUST use native addEventListener with { passive: false } because
+  // React registers touch events as passive by default, making
+  // e.preventDefault() a no-op (browser still scrolls instead of drawing).
+  // We read from refs (not state) to avoid stale closures.
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (modeRef.current !== 'region') return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    drawStartRef.current = coords;
+    isDrawingRef.current = true;
+    setDrawStart(coords);
+    setIsDrawing(true);
+    setSelectionRect(null);
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDrawingRef.current || !drawStartRef.current || modeRef.current !== 'region') return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    const start = drawStartRef.current;
+    setSelectionRect({
+      x: Math.min(start.x, coords.x),
+      y: Math.min(start.y, coords.y),
+      w: Math.abs(coords.x - start.x),
+      h: Math.abs(coords.y - start.y),
+    });
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    e.preventDefault();
+    isDrawingRef.current = false;
+    drawStartRef.current = null;
+    setIsDrawing(false);
+    setDrawStart(null);
+  }, []);
+
+  // Attach touch listeners natively with { passive: false }
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, imageSrc]);
 
   // ── OCR Execution ──
   const runOCR = async () => {
@@ -431,7 +507,7 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
                       onMouseMove={handleMouseMove}
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseUp}
-                      className={`max-w-full ${mode === 'region' ? 'cursor-crosshair' : 'cursor-default'}`}
+                      className={`max-w-full touch-none ${mode === 'region' ? 'cursor-crosshair' : 'cursor-default'}`}
                     />
                   </div>
 
