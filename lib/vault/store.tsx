@@ -173,21 +173,6 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     };
   }, [socket, isConnected, utils]);
 
-  // ── Client-side expiry polling ──
-  // Every 30s, check if any visible items have expired; if so, refetch to remove them
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const hasExpired = items.some(
-        (item) => item.expiresAt && new Date(item.expiresAt).getTime() <= now
-      );
-      if (hasExpired) {
-        utils.vault.getPublicItemsPaginated.invalidate();
-        utils.vault.getItems.invalidate();
-      }
-    }, 30_000);
-    return () => clearInterval(interval);
-  }, [items, utils]);
 
   // ── tRPC mutations ──
   // createItem is a public API — works both logged-in and anonymous
@@ -271,6 +256,22 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [userItems, publicItems]);
 
   const finalItems = items;
+
+  // ── Client-side expiry polling ──
+  // Every 30s, check if any visible items have expired; if so, refetch to remove them
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const hasExpired = items.some(
+        (item) => item.expiresAt && new Date(item.expiresAt).getTime() <= now
+      );
+      if (hasExpired) {
+        utils.vault.getPublicItemsPaginated.invalidate();
+        utils.vault.getItems.invalidate();
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [items, utils]);
 
   // ── Toast helpers ──
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
