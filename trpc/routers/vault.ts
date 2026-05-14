@@ -11,7 +11,7 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // ── Lazy Expired Item Cleanup (throttled) ────────────────────
 let lastCleanupAt = 0;
-const CLEANUP_INTERVAL_MS = 60 * 1000; // run at most once per 60 seconds
+const CLEANUP_INTERVAL_MS = 30 * 1000; // run at most once per 30 seconds
 
 async function cleanupExpiredItems() {
   const now = Date.now();
@@ -536,6 +536,9 @@ function extractAutoTitle(plainText: string): string {
 export const vaultRouter = createTRPCRouter({
   // ── Get all items for the logged-in user ────────────────
   getItems: protectedProcedure.query(async ({ ctx }) => {
+    // Fire-and-forget: purge expired items from DB (throttled, non-blocking)
+    cleanupExpiredItems().catch(() => {});
+
     const userId = await resolveUserId(ctx.clerkUserId!);
 
     const items = await query<VaultItemRow>(
@@ -578,6 +581,9 @@ export const vaultRouter = createTRPCRouter({
 
   // ── Get public items (no auth required) ─────────────────
   getPublicItems: baseProcedure.query(async () => {
+    // Fire-and-forget: purge expired items from DB (throttled, non-blocking)
+    cleanupExpiredItems().catch(() => {});
+
     // Join owner name + profile visibility setting
     const items = await query<PublicItemRow>(
       `SELECT vi.*,

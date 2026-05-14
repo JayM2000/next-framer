@@ -174,20 +174,21 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
     if (file) handleFile(file);
   }, [handleFile]);
 
-  // ── Canvas mouse events for region selection ──
-  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // ── Canvas pointer helpers for region selection (mouse + touch) ──
+  const getCanvasCoords = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     };
   };
 
+  // ── Mouse handlers ──
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (mode !== 'region') return;
-    const coords = getCanvasCoords(e);
+    const coords = getCanvasCoords(e.clientX, e.clientY);
     setDrawStart(coords);
     setIsDrawing(true);
     setSelectionRect(null);
@@ -195,7 +196,7 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !drawStart || mode !== 'region') return;
-    const coords = getCanvasCoords(e);
+    const coords = getCanvasCoords(e.clientX, e.clientY);
     setSelectionRect({
       x: Math.min(drawStart.x, coords.x),
       y: Math.min(drawStart.y, coords.y),
@@ -205,6 +206,36 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
   };
 
   const handleMouseUp = () => {
+    setIsDrawing(false);
+    setDrawStart(null);
+  };
+
+  // ── Touch handlers (mobile region selection) ──
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (mode !== 'region') return;
+    e.preventDefault(); // prevent page scroll while drawing
+    const touch = e.touches[0];
+    const coords = getCanvasCoords(touch.clientX, touch.clientY);
+    setDrawStart(coords);
+    setIsDrawing(true);
+    setSelectionRect(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !drawStart || mode !== 'region') return;
+    e.preventDefault(); // prevent page scroll while drawing
+    const touch = e.touches[0];
+    const coords = getCanvasCoords(touch.clientX, touch.clientY);
+    setSelectionRect({
+      x: Math.min(drawStart.x, coords.x),
+      y: Math.min(drawStart.y, coords.y),
+      w: Math.abs(coords.x - drawStart.x),
+      h: Math.abs(coords.y - drawStart.y),
+    });
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     setIsDrawing(false);
     setDrawStart(null);
   };
@@ -431,7 +462,10 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
                       onMouseMove={handleMouseMove}
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseUp}
-                      className={`max-w-full ${mode === 'region' ? 'cursor-crosshair' : 'cursor-default'}`}
+                      onTouchStart={handleTouchStart}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      className={`max-w-full touch-none ${mode === 'region' ? 'cursor-crosshair' : 'cursor-default'}`}
                     />
                   </div>
 

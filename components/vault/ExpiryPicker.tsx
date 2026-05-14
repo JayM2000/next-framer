@@ -183,8 +183,8 @@ export default function ExpiryPicker({ value, onChange, compact }: ExpiryPickerP
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="overflow-hidden"
           >
-            <div className="flex gap-2 rounded-lg border border-[var(--vault-border)] bg-[var(--vault-bg)]/50 p-3">
-              <div className="flex-1 space-y-1">
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--vault-border)] bg-[var(--vault-bg)]/50 p-3">
+              <div className="space-y-1">
                 <label className="text-[10px] font-medium text-[var(--vault-muted)] uppercase tracking-wider">Date</label>
                 <input
                   type="date"
@@ -195,7 +195,7 @@ export default function ExpiryPicker({ value, onChange, compact }: ExpiryPickerP
                   className="vault-input text-xs !py-1.5"
                 />
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="space-y-1">
                 <label className="text-[10px] font-medium text-[var(--vault-muted)] uppercase tracking-wider">Time</label>
                 <input
                   type="time"
@@ -205,15 +205,15 @@ export default function ExpiryPicker({ value, onChange, compact }: ExpiryPickerP
                   className="vault-input text-xs !py-1.5"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="col-span-2">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleCustomApply}
                   disabled={!customDate || !customTime}
-                  className="rounded-lg bg-[var(--vault-gold)]/15 border border-[var(--vault-gold)]/30 px-3 py-1.5 text-[11px] font-semibold text-[var(--vault-gold)] transition-all hover:bg-[var(--vault-gold)]/25 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg bg-[var(--vault-gold)]/15 border border-[var(--vault-gold)]/30 px-3 py-2 text-[11px] font-semibold text-[var(--vault-gold)] transition-all hover:bg-[var(--vault-gold)]/25 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Set
+                  Set Custom Expiry
                 </motion.button>
               </div>
             </div>

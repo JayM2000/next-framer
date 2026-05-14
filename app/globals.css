@@ -424,6 +424,40 @@
   box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
 }
 
+/* --- Date/Time input fixes (mobile + dark mode) --- */
+.vault-input[type="date"],
+.vault-input[type="time"] {
+  min-height: 2.25rem;
+  line-height: 1.2;
+  color-scheme: light;
+}
+.dark .vault-input[type="date"],
+.dark .vault-input[type="time"] {
+  color-scheme: dark;
+}
+/* Ensure the editable text inside date/time pickers is visible */
+.vault-input[type="date"]::-webkit-datetime-edit,
+.vault-input[type="time"]::-webkit-datetime-edit {
+  color: var(--vault-text);
+  padding: 0;
+}
+.vault-input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.vault-input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+/* Style the calendar/clock picker icon */
+.vault-input[type="date"]::-webkit-calendar-picker-indicator,
+.vault-input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: none;
+}
+.dark .vault-input[type="date"]::-webkit-calendar-picker-indicator,
+.dark .vault-input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+}
+
 /* --- Button Styles --- */
 .vault-btn-primary {
   display: inline-flex;
