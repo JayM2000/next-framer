@@ -870,9 +870,10 @@ export const vaultRouter = createTRPCRouter({
         const nowMs = Date.now();
         const diffMs = expiryDate.getTime() - nowMs;
         const MIN_EXPIRY_MS = 60 * 1000;                 // 1 minute
+        const TOLERANCE_MS  = 10 * 1000;                 // 10s buffer for network latency
         const MAX_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
 
-        if (diffMs < MIN_EXPIRY_MS) {
+        if (diffMs < MIN_EXPIRY_MS - TOLERANCE_MS) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Expiry must be at least 1 minute from now",

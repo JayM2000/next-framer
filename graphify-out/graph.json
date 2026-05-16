@@ -990,7 +990,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
-      "community": 4,
+      "community": 5,
       "norm_label": "imageocrmodal.tsx"
     },
     {
@@ -999,61 +999,52 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
       "source_location": "L14",
       "id": "imageocrmodal_autolinktext",
-      "community": 4,
+      "community": 5,
       "norm_label": "autolinktext()"
-    },
-    {
-      "label": "getCanvasCoords()",
-      "file_type": "code",
-      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L178",
-      "id": "imageocrmodal_getcanvascoords",
-      "community": 4,
-      "norm_label": "getcanvascoords()"
     },
     {
       "label": "handleMouseDown()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L188",
+      "source_location": "L203",
       "id": "imageocrmodal_handlemousedown",
-      "community": 4,
+      "community": 5,
       "norm_label": "handlemousedown()"
     },
     {
       "label": "handleMouseMove()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L196",
+      "source_location": "L211",
       "id": "imageocrmodal_handlemousemove",
-      "community": 4,
+      "community": 5,
       "norm_label": "handlemousemove()"
     },
     {
       "label": "handleMouseUp()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L207",
+      "source_location": "L222",
       "id": "imageocrmodal_handlemouseup",
-      "community": 4,
+      "community": 5,
       "norm_label": "handlemouseup()"
     },
     {
       "label": "runOCR()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L213",
+      "source_location": "L289",
       "id": "imageocrmodal_runocr",
-      "community": 4,
+      "community": 5,
       "norm_label": "runocr()"
     },
     {
       "label": "handleInsert()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L284",
+      "source_location": "L360",
       "id": "imageocrmodal_handleinsert",
-      "community": 4,
+      "community": 5,
       "norm_label": "handleinsert()"
     },
     {
@@ -1395,7 +1386,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L1",
       "id": "c_users_misal_onedrive_documents_next_framer_components_vault_userprofilehovercard_tsx",
-      "community": 5,
+      "community": 4,
       "norm_label": "userprofilehovercard.tsx"
     },
     {
@@ -1404,7 +1395,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L16",
       "id": "userprofilehovercard_catmullrom2bezier",
-      "community": 5,
+      "community": 4,
       "norm_label": "catmullrom2bezier()"
     },
     {
@@ -1413,7 +1404,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L35",
       "id": "userprofilehovercard_animatedcount",
-      "community": 5,
+      "community": 4,
       "norm_label": "animatedcount()"
     },
     {
@@ -1422,7 +1413,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L92",
       "id": "userprofilehovercard_handletriggerenter",
-      "community": 5,
+      "community": 4,
       "norm_label": "handletriggerenter()"
     },
     {
@@ -1431,7 +1422,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L100",
       "id": "userprofilehovercard_handletriggerleave",
-      "community": 5,
+      "community": 4,
       "norm_label": "handletriggerleave()"
     },
     {
@@ -1440,7 +1431,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L105",
       "id": "userprofilehovercard_handlecardenter",
-      "community": 5,
+      "community": 4,
       "norm_label": "handlecardenter()"
     },
     {
@@ -1449,7 +1440,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L109",
       "id": "userprofilehovercard_handlecardleave",
-      "community": 5,
+      "community": 4,
       "norm_label": "handlecardleave()"
     },
     {
@@ -1458,7 +1449,7 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\UserProfileHoverCard.tsx",
       "source_location": "L113",
       "id": "userprofilehovercard_handleclick",
-      "community": 5,
+      "community": 4,
       "norm_label": "handleclick()"
     },
     {
@@ -1807,7 +1798,7 @@
       "label": "useVault()",
       "file_type": "code",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L557",
+      "source_location": "L574",
       "id": "store_usevault",
       "community": 1,
       "norm_label": "usevault()"
@@ -2931,19 +2922,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L178",
-      "weight": 1.0,
-      "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
-      "_tgt": "imageocrmodal_getcanvascoords",
-      "source": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
-      "target": "imageocrmodal_getcanvascoords",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L188",
+      "source_location": "L203",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
       "_tgt": "imageocrmodal_handlemousedown",
@@ -2955,7 +2934,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L196",
+      "source_location": "L211",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
       "_tgt": "imageocrmodal_handlemousemove",
@@ -2967,7 +2946,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L207",
+      "source_location": "L222",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
       "_tgt": "imageocrmodal_handlemouseup",
@@ -2979,7 +2958,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L213",
+      "source_location": "L289",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
       "_tgt": "imageocrmodal_runocr",
@@ -2991,7 +2970,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L284",
+      "source_location": "L360",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_components_vault_imageocrmodal_tsx",
       "_tgt": "imageocrmodal_handleinsert",
@@ -3003,36 +2982,12 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L286",
+      "source_location": "L362",
       "weight": 1.0,
       "_src": "imageocrmodal_handleinsert",
       "_tgt": "imageocrmodal_autolinktext",
       "source": "imageocrmodal_autolinktext",
       "target": "imageocrmodal_handleinsert",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L190",
-      "weight": 1.0,
-      "_src": "imageocrmodal_handlemousedown",
-      "_tgt": "imageocrmodal_getcanvascoords",
-      "source": "imageocrmodal_getcanvascoords",
-      "target": "imageocrmodal_handlemousedown",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\components\\vault\\ImageOCRModal.tsx",
-      "source_location": "L198",
-      "weight": 1.0,
-      "_src": "imageocrmodal_handlemousemove",
-      "_tgt": "imageocrmodal_getcanvascoords",
-      "source": "imageocrmodal_getcanvascoords",
-      "target": "imageocrmodal_handlemousemove",
       "confidence_score": 1.0
     },
     {
@@ -3831,7 +3786,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
-      "source_location": "L557",
+      "source_location": "L574",
       "weight": 1.0,
       "_src": "c_users_misal_onedrive_documents_next_framer_lib_vault_store_tsx",
       "_tgt": "store_usevault",

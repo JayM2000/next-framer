@@ -98,12 +98,10 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Fit image to canvas container (max 600×400)
-    const maxW = 600;
-    const maxH = 400;
-    const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
-    canvas.width = img.naturalWidth * scale;
-    canvas.height = img.naturalHeight * scale;
+    // Use full native resolution so the image stays crisp.
+    // CSS (max-width / max-height) constrains the visual size.
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     imgRef.current = img;
   }, []);
@@ -507,7 +505,8 @@ export default function ImageOCRModal({ open, onClose, onInsert }: Props) {
                       onMouseMove={handleMouseMove}
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseUp}
-                      className={`max-w-full touch-none ${mode === 'region' ? 'cursor-crosshair' : 'cursor-default'}`}
+                      className={`touch-none ${mode === 'region' ? 'cursor-crosshair' : 'cursor-default'}`}
+                      style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }}
                     />
                   </div>
 
