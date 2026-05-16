@@ -1,11 +1,11 @@
-# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-05-14)
+# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-05-15)
 
 ## Corpus Check
-- 87 files · ~83,059 words
+- 87 files · ~83,492 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 222 nodes · 168 edges · 73 communities detected
+- 221 nodes · 165 edges · 73 communities detected
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -90,11 +90,11 @@
 3. `formatWithTimezone()` - 5 edges
 4. `cleanupExpiredItems()` - 3 edges
 5. `GET()` - 3 edges
-6. `getCanvasCoords()` - 3 edges
-7. `handleKeyDown()` - 3 edges
-8. `withTransaction()` - 3 edges
-9. `decryptItemFieldsServer()` - 3 edges
-10. `useVault()` - 3 edges
+6. `handleKeyDown()` - 3 edges
+7. `withTransaction()` - 3 edges
+8. `decryptItemFieldsServer()` - 3 edges
+9. `useVault()` - 3 edges
+10. `getQueryClient()` - 3 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `query()` --calls--> `migrate()`  [INFERRED]
@@ -127,12 +127,12 @@ Cohesion: 0.39
 Nodes (5): formatLocalDate(), formatLocalShort(), formatLocalTime(), formatWithTimezone(), getSystemTimezone()
 
 ### Community 4 - "Community 4"
-Cohesion: 0.36
-Nodes (5): autoLinkText(), getCanvasCoords(), handleInsert(), handleMouseDown(), handleMouseMove()
-
-### Community 5 - "Community 5"
 Cohesion: 0.25
 Nodes (0): 
+
+### Community 5 - "Community 5"
+Cohesion: 0.33
+Nodes (2): autoLinkText(), handleInsert()
 
 ### Community 6 - "Community 6"
 Cohesion: 0.33
