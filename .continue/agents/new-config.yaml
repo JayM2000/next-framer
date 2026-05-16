@@ -1,0 +1,27 @@
+models:
+  - name: Qwen2.5 Coder 32B
+    provider: ollama
+    model: qwen2.5-coder:32b
+    roles:
+      - chat
+      - edit
+      - apply
+      - autocomplete
+    apiBase: http://3.109.143.150:11434
+
+  - name: DeepSeek R1 32B
+    provider: ollama
+    model: deepseek-r1:32b
+    roles:
+      - chat
+      - edit
+      - apply
+    apiBase: http://3.109.143.150:11434
+
+tabAutocompleteModel:
+  name: Qwen2.5 Coder 32B
+  provider: ollama
+  model: qwen2.5-coder:32b
+  apiBase: http://3.109.143.150:11434
+
+allowAnonymousTelemetry: false
