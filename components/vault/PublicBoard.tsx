@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useMemo, useCallback, useRef, memo, useEffect, type CSSProperties } from 'react';
+import { motion } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
 import ItemCard from './ItemCard';
 import ItemDetailModal from './ItemDetailModal';
@@ -193,29 +193,30 @@ const CardGrid = memo(function CardGrid({
   onItemClick,
   onStatsClick,
   onEdit,
+  performanceMode = false,
 }: {
   items: VaultItem[];
   indexOffset: number;
   onItemClick: (item: VaultItem) => void;
   onStatsClick: (item: VaultItem) => void;
   onEdit: (item: VaultItem) => void;
+  performanceMode?: boolean;
 }) {
   return (
     <div
       className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
     >
-      <AnimatePresence mode="popLayout">
-        {items.map((item, i) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-            index={indexOffset + i}
-            onClick={() => onItemClick(item)}
-            onStatsClick={() => onStatsClick(item)}
-            onEdit={() => onEdit(item)}
-          />
-        ))}
-      </AnimatePresence>
+      {items.map((item, i) => (
+        <ItemCard
+          key={item.id}
+          item={item}
+          index={indexOffset + i}
+          onClick={() => onItemClick(item)}
+          onStatsClick={() => onStatsClick(item)}
+          onEdit={() => onEdit(item)}
+          performanceMode={performanceMode}
+        />
+      ))}
     </div>
   );
 });
@@ -229,9 +230,16 @@ export default function PublicBoard() {
   const { state, isLoading, isRefetching, currentDbUserId, fetchNextPublicPage, hasNextPublicPage, isFetchingNextPublicPage } = useVault();
   const utils = trpc.useUtils();
   const [selectedItem, setSelectedItem] = useState<{ item: VaultItem; initialTab?: 'rendered' | 'raw' | 'stats' } | null>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const headerShadowRef = useRef<HTMLDivElement>(null);
+  const isScrolledRef = useRef(false);
+  const scrollRafRef = useRef<number | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollViewStyle = useMemo(() => ({
+    WebkitOverflowScrolling: 'touch',
+    scrollbarGutter: 'stable',
+    overscrollBehavior: 'contain',
+  }) as CSSProperties, []);
 
   // Filter state
   const [filterMyItems, setFilterMyItems] = useState(false);
@@ -270,16 +278,35 @@ export default function PublicBoard() {
     staleTime: 60 * 1000, // 1 min — tags don't change often
   });
 
-  const handleScroll = useCallback(() => {
-    if (scrollRef.current) {
-      setIsScrolled(scrollRef.current.scrollTop > 4);
+  const updateScrollShadow = useCallback(() => {
+    scrollRafRef.current = null;
+    const nextIsScrolled = (scrollRef.current?.scrollTop ?? 0) > 4;
+    if (isScrolledRef.current === nextIsScrolled) return;
+
+    isScrolledRef.current = nextIsScrolled;
+    if (headerShadowRef.current) {
+      headerShadowRef.current.style.opacity = nextIsScrolled ? '1' : '0';
     }
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = window.requestAnimationFrame(updateScrollShadow);
+  }, [updateScrollShadow]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+      }
+    };
   }, []);
   const [editingItem, setEditingItem] = useState<VaultItem | null>(null);
 
   // ── Infinite scroll: IntersectionObserver ──
   useEffect(() => {
     const sentinel = sentinelRef.current;
+    const root = scrollRef.current;
     if (!sentinel) return;
 
     const observer = new IntersectionObserver(
@@ -288,7 +315,7 @@ export default function PublicBoard() {
           fetchNextPublicPage();
         }
       },
-      { rootMargin: '300px' } // trigger 300px before reaching the bottom
+      { root, rootMargin: '600px 0px' } // trigger before reaching the bottom of the scroll container
     );
 
     observer.observe(sentinel);
@@ -490,10 +517,11 @@ export default function PublicBoard() {
       <div className="shrink-0 mb-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-y-3 pb-2 pt-2 pl-[6px] pr-[5px] md:pl-[8px] md:pr-[10px] lg:px-[18px] relative z-10">
         {/* Scroll shadow constrained to central 80% */}
         <div
+          ref={headerShadowRef}
           className="absolute bottom-0 left-[1%] right-[1%] h-full pointer-events-none transition-opacity duration-300 rounded-3xl"
           style={{
             boxShadow: '0 6px 8px -6px var(--vault-scroll-shadow)',
-            opacity: isScrolled ? 1 : 0
+            opacity: 0
           }}
         />
         
@@ -627,7 +655,7 @@ export default function PublicBoard() {
       </div>
 
       {/* Scrollable content area */}
-      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0 px-[11px] pt-[10px]">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overscroll-contain min-h-0 px-[11px] pt-[10px]" style={scrollViewStyle}>
         {/* Skeleton loading — initial load / hard refresh only */}
         {isLoading ? (
           <SkeletonGrid count={9} />
@@ -678,6 +706,7 @@ export default function PublicBoard() {
                           onItemClick={handleItemClick}
                           onStatsClick={handleStatsClick}
                           onEdit={handleEditFromCard}
+                          performanceMode
                         />
                     </motion.section>
                   );
@@ -693,6 +722,7 @@ export default function PublicBoard() {
                 onItemClick={handleItemClick}
                 onStatsClick={handleStatsClick}
                 onEdit={handleEditFromCard}
+                performanceMode
               />
             )}
 
@@ -715,6 +745,7 @@ export default function PublicBoard() {
                   onItemClick={handleItemClick}
                   onStatsClick={handleStatsClick}
                   onEdit={handleEditFromCard}
+                  performanceMode
                 />
               </>
             )}
