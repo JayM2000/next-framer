@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, memo, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { Copy, Edit3, Lock, FileText, Clipboard, KeyRound, Check, ArrowUpRight, Sparkles, User, Globe, ExternalLink, Star, Shield, Loader2 } from 'lucide-react';
 import { useVault } from '@/lib/vault/store';
@@ -34,9 +34,10 @@ interface Props {
   onClick?: () => void;
   onStatsClick?: () => void;
   onEdit?: () => void;
+  performanceMode?: boolean;
 }
 
-const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, onEdit }: Props) {
+const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, onEdit, performanceMode = false }: Props) {
   const { dispatch, copyToClipboard, currentDbUserId, userSettings } = useVault();
   const [copied, setCopied] = useState(false);
   const [decrypting, setDecrypting] = useState(false);
@@ -44,6 +45,12 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
   const isClipboard = item.type === 'clipboard';
   const isOwner = currentDbUserId !== null && item.userId === currentDbUserId;
   const utils = trpc.useUtils();
+  const cardStyle = {
+    background: typeGradients[item.type],
+    contentVisibility: 'auto',
+    contain: 'layout paint style',
+    containIntrinsicSize: 'auto 220px',
+  } as CSSProperties;
 
   const handleQuickCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -78,25 +85,29 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      whileTap={{ scale: 0.98 }}
+      {...(performanceMode
+        ? { initial: false }
+        : {
+            layout: true,
+            initial: { opacity: 0, y: 20, scale: 0.95 },
+            animate: { opacity: 1, y: 0, scale: 1 },
+            exit: { opacity: 0, scale: 0.9 },
+            transition: { delay: Math.min(index, 12) * 0.035, duration: 0.25 },
+          })}
+      whileHover={performanceMode ? undefined : { y: -4, transition: { duration: 0.2 } }}
+      whileTap={performanceMode ? undefined : { scale: 0.98 }}
       onClick={onClick}
       className="vault-glass-card group relative flex cursor-pointer flex-col rounded-xl border border-[var(--vault-border)] transition-shadow hover:shadow-lg hover:shadow-[var(--vault-gold)]/5 hover:border-[var(--vault-gold)]/30"
-      style={{ background: typeGradients[item.type] }}
+      style={cardStyle}
     >
 
 
       {/* Important Star Marker — only visible to the item owner */}
       {isOwner && item.isImportant && (
         <motion.div
-          animate={{ scale: [1, 1.15, 1], rotate: [0, 15, -15, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
-          className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 text-[#0a0a0f] shadow-[0_0_12px_rgba(251,191,36,0.8)] ring-[3px] ring-[var(--vault-panel)]"
+          animate={performanceMode ? undefined : { scale: [1, 1.15, 1], rotate: [0, 15, -15, 0] }}
+          transition={performanceMode ? undefined : { duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
+          className={`absolute z-10 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 text-[#0a0a0f] shadow-[0_0_12px_rgba(251,191,36,0.8)] ring-[3px] ring-[var(--vault-panel)] ${performanceMode ? 'left-2 top-2' : '-left-2 -top-2'}`}
         >
           <Star className="h-3 w-3 fill-current drop-shadow-sm" />
         </motion.div>
@@ -104,7 +115,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
 
       {/* Hover glow effect for clipboard cards */}
       {isClipboard && (
-        <motion.div
+        <div
           className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           style={{
             background: `radial-gradient(circle at 50% 0%, ${typeColors.clipboard}15, transparent 70%)`,
@@ -113,17 +124,17 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
       )}
 
       {/* Click-to-open indicator */}
-      <motion.div
+      <div
         className="absolute right-3 top-[8px] flex h-6 w-6 items-center justify-center rounded-full opacity-0 transition-all duration-200 group-hover:opacity-100"
         style={{ backgroundColor: `${typeColors[item.type]}15`, color: typeColors[item.type] }}
       >
         <ArrowUpRight className="h-3 w-3" />
-      </motion.div>
+      </div>
 
       <div className="flex items-start gap-2.5 p-4 pb-2">
         <motion.div
-          whileHover={{ rotate: [0, -10, 10, 0] }}
-          transition={{ duration: 0.4 }}
+          whileHover={performanceMode ? undefined : { rotate: [0, -10, 10, 0] }}
+          transition={performanceMode ? undefined : { duration: 0.4 }}
           className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${typeColors[item.type]}15`, color: typeColors[item.type] }}
         >
@@ -260,7 +271,7 @@ const ItemCard = memo(function ItemCard({ item, index, onClick, onStatsClick, on
         onClick={(e) => e.stopPropagation()}
       >
         <motion.button
-          whileTap={{ scale: 1.1 }}
+          whileTap={performanceMode ? undefined : { scale: 1.1 }}
           onClick={handleQuickCopy}
           disabled={decrypting}
           className={`vault-action-btn transition-all ${copied ? 'text-emerald-400' : ''} ${decrypting ? 'opacity-60' : ''}`}
