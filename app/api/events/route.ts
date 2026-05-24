@@ -1,8 +1,12 @@
 import { EventEmitter } from 'events';
 
+const globalWithEmitter = globalThis as typeof globalThis & {
+  vaultEventEmitter?: EventEmitter;
+};
+
 // Ensure the global event emitter exists (also initialized in server.js)
-if (!(global as any).vaultEventEmitter) {
-  (global as any).vaultEventEmitter = new EventEmitter();
+if (!globalWithEmitter.vaultEventEmitter) {
+  globalWithEmitter.vaultEventEmitter = new EventEmitter();
 }
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +16,11 @@ export async function GET(req: Request) {
 
   const stream = new ReadableStream({
     start(controller) {
-      const emitter: EventEmitter = (global as any).vaultEventEmitter;
+      const emitter = globalWithEmitter.vaultEventEmitter;
+      if (!emitter) {
+        controller.close();
+        return;
+      }
 
       // Send initial connection confirmation
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
