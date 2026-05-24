@@ -49,30 +49,22 @@ export const protectedProcedure = t.procedure.use(
     }
 
     const { rows } = await db.query(
-      `SELECT * FROM users WHERE clerk_id = $1 LIMIT 1`,
+      `SELECT id FROM users WHERE clerk_id = $1 LIMIT 1`,
       [ctx.clerkUserId]
     );
-    const userData = rows?.[0];
+    const dbUserId: number | undefined = rows?.[0]?.id;
 
-    if (!userData) {
+    if (!dbUserId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Not authorized, unable to get your details from database!",
       });
     }
 
-    // const { success } = await ratelimit.limit(userData.id);
-    // if (!success) {
-    //   throw new TRPCError({
-    //     code: "TOO_MANY_REQUESTS",
-    //     message: "Too many request triggered Please try again later!",
-    //   });
-    // }
-
     return next({
       ctx: {
         ...ctx,
-        userData,
+        dbUserId,
       },
     });
   },

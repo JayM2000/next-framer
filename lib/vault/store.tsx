@@ -12,7 +12,7 @@ import React, {
 } from 'react';
 import { trpc } from '@/trpc/client';
 import type { AppState, AppAction, VaultItem } from './types';
-import { useSocket } from '@/components/providers/SocketProvider';
+import { useSSE } from '@/components/providers/SSEProvider';
 import { useAuth } from '@clerk/nextjs';
 
 // ── LocalStorage key for anonymous user settings ──
@@ -153,25 +153,21 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     return publicPagesData.pages.flatMap((page) => page.items);
   }, [publicPagesData]);
 
-  // ── Socket.IO Live Updates ──
-  const { socket, isConnected } = useSocket();
+  // ── SSE Live Updates ──
+  const { updateSignal } = useSSE();
+  const isFirstSignal = useRef(true);
 
   useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleVaultUpdate = () => {
-      // Invalidate queries so they refetch immediately
-      utils.vault.getPublicItemsPaginated.invalidate();
-      utils.vault.getItems.invalidate();
-      utils.vault.getUserSettings.invalidate();
-    };
-
-    socket.on('vault:update', handleVaultUpdate);
-
-    return () => {
-      socket.off('vault:update', handleVaultUpdate);
-    };
-  }, [socket, isConnected, utils]);
+    // Skip the initial render — only react to actual server events
+    if (isFirstSignal.current) {
+      isFirstSignal.current = false;
+      return;
+    }
+    // Invalidate queries so they refetch immediately
+    utils.vault.getPublicItemsPaginated.invalidate();
+    utils.vault.getItems.invalidate();
+    utils.vault.getUserSettings.invalidate();
+  }, [updateSignal, utils]);
 
 
   // ── tRPC mutations ──
