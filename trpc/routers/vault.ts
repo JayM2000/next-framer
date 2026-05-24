@@ -9,36 +9,8 @@ const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
 const MAX_ANON_ITEMS_PER_HOUR = 10;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-// ── Lazy Expired Item Cleanup (throttled) ────────────────────
-let lastCleanupAt = 0;
-const CLEANUP_INTERVAL_MS = 30 * 1000; // run at most once per 30 seconds
-
-async function cleanupExpiredItems() {
-  const now = Date.now();
-  if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
-  lastCleanupAt = now;
-
-  try {
-    // Delete tags first (foreign key), then the items
-    await query(
-      `DELETE FROM vault_item_tags
-       WHERE item_id IN (
-         SELECT id FROM vault_items
-         WHERE expires_at IS NOT NULL AND expires_at <= NOW()
-       )`
-    );
-    const deleted = await query<{ id: string }>(
-      `DELETE FROM vault_items
-       WHERE expires_at IS NOT NULL AND expires_at <= NOW()
-       RETURNING id`
-    );
-    if (deleted.length > 0) {
-      console.log(`[vault-cleanup] Purged ${deleted.length} expired item(s)`);
-    }
-  } catch (e) {
-    console.error('[vault-cleanup] Failed to purge expired items:', e);
-  }
-}
+// NOTE: Expired item cleanup is handled by server.js on a 30s interval.
+// No lazy cleanup in the request hot path.
 
 // ── Zod Schemas ──────────────────────────────────────────────
 
@@ -536,10 +508,7 @@ function extractAutoTitle(plainText: string): string {
 export const vaultRouter = createTRPCRouter({
   // ── Get all items for the logged-in user ────────────────
   getItems: protectedProcedure.query(async ({ ctx }) => {
-    // Fire-and-forget: purge expired items from DB (throttled, non-blocking)
-    cleanupExpiredItems().catch(() => {});
-
-    const userId = await resolveUserId(ctx.clerkUserId!);
+    const userId = ctx.dbUserId;
 
     const items = await query<VaultItemRow>(
       `SELECT id, user_id, type, visibility, title, content, plain_text,
@@ -581,8 +550,6 @@ export const vaultRouter = createTRPCRouter({
 
   // ── Get public items (no auth required) ─────────────────
   getPublicItems: baseProcedure.query(async () => {
-    // Fire-and-forget: purge expired items from DB (throttled, non-blocking)
-    cleanupExpiredItems().catch(() => {});
 
     // Join owner name + profile visibility setting
     const items = await query<PublicItemRow>(
@@ -641,8 +608,6 @@ export const vaultRouter = createTRPCRouter({
       })
     )
     .query(async ({ input }) => {
-      // Fire-and-forget: purge expired items from DB (throttled, non-blocking)
-      cleanupExpiredItems().catch(() => {});
 
       const limit = input.limit;
 
@@ -942,7 +907,7 @@ export const vaultRouter = createTRPCRouter({
   updateItem: protectedProcedure
     .input(updateItemSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       // Verify ownership
       const existing = await query<VaultItemRow>(
@@ -1141,7 +1106,7 @@ export const vaultRouter = createTRPCRouter({
   deleteItem: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       const result = await query(
         `UPDATE vault_items
@@ -1166,7 +1131,7 @@ export const vaultRouter = createTRPCRouter({
   recoverItem: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       const result = await query(
         `UPDATE vault_items
@@ -1191,7 +1156,7 @@ export const vaultRouter = createTRPCRouter({
   deleteItemPermanent: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       // Also clean up tags (handled by ON DELETE CASCADE if set up, but let's be safe)
       await withTransaction(async (client) => {
@@ -1219,7 +1184,7 @@ export const vaultRouter = createTRPCRouter({
   toggleVisibility: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       // Combined verify + update: passwords can never be made public
       const result = await query<VaultItemRow>(
@@ -1264,7 +1229,7 @@ export const vaultRouter = createTRPCRouter({
   toggleImportant: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       // Combined verify + update in a single query
       const result = await query<VaultItemRow>(
@@ -1372,7 +1337,7 @@ export const vaultRouter = createTRPCRouter({
 
   // ── Get current user's settings ─────────────────────────
   getUserSettings: protectedProcedure.query(async ({ ctx }) => {
-    const userId = await resolveUserId(ctx.clerkUserId!);
+    const userId = ctx.dbUserId;
 
     // Upsert + return in a single round-trip using CTE
     const rows = await query<UserSettingsRow>(
@@ -1401,7 +1366,7 @@ export const vaultRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
 
       await query(
         `INSERT INTO user_settings (user_id, show_profile_on_public, auto_tag_enabled, updated_at)
@@ -1508,7 +1473,7 @@ export const vaultRouter = createTRPCRouter({
   // ══════════════════════════════════════════════════════════
 
   getEncryptionSalt: protectedProcedure.query(async ({ ctx }) => {
-    const userId = await resolveUserId(ctx.clerkUserId!);
+    const userId = ctx.dbUserId;
     const rows = await query<{ encryption_salt: string | null }>(
       `SELECT encryption_salt FROM user_settings WHERE user_id = $1`,
       [userId]
@@ -1519,7 +1484,7 @@ export const vaultRouter = createTRPCRouter({
   setEncryptionSalt: protectedProcedure
     .input(z.object({ salt: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = await resolveUserId(ctx.clerkUserId!);
+      const userId = ctx.dbUserId;
       await query(
         `INSERT INTO user_settings (user_id, encryption_salt)
          VALUES ($1, $2)

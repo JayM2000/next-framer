@@ -1,11 +1,10 @@
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
-const { Server } = require('socket.io');
 const { EventEmitter } = require('events');
 const { Pool } = require('pg');
 
-// Global event emitter to bridge the Next.js API routes (tRPC) with the Socket.io server
+// Global event emitter to bridge the Next.js API routes (tRPC) with SSE clients
 if (!global.vaultEventEmitter) {
   global.vaultEventEmitter = new EventEmitter();
 }
@@ -24,25 +23,6 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   });
 
-  // Initialize Socket.io
-  const io = new Server(server, {
-    cors: { origin: '*' },
-  });
-
-  io.on('connection', (socket) => {
-    console.log('🔌 Socket connected:', socket.id);
-
-    socket.on('disconnect', () => {
-      console.log('🔌 Socket disconnected:', socket.id);
-    });
-  });
-
-  // Listen for internal tRPC mutations emitting a refresh signal
-  global.vaultEventEmitter.on('vault:update', () => {
-    // Broadcast to all connected clients
-    io.emit('vault:update');
-  });
-
   server.once('error', (err) => {
     console.error('Server error:', err);
     process.exit(1);
@@ -50,7 +30,6 @@ app.prepare().then(() => {
 
   server.listen(port, () => {
     console.log(`> 🚀 Ready on http://${hostname}:${port}`);
-    console.log(`> 🔌 Socket.IO enabled`);
 
     // ── Expired Items Cleanup (every 30 seconds) ──
     const CLEANUP_INTERVAL_MS = 30 * 1000;
@@ -68,6 +47,7 @@ app.prepare().then(() => {
           max: 2,
           idleTimeoutMillis: 30000,
           ssl: caCert ? { rejectUnauthorized: false, ca: caCert } : false,
+          keepAlive: true,
         });
       }
       return cleanupPool;
@@ -98,7 +78,8 @@ app.prepare().then(() => {
 
         if (result.rowCount > 0) {
           console.log(`🧹 Cleaned up ${result.rowCount} expired item(s)`);
-          io.emit('vault:update');
+          // Notify SSE clients via the global EventEmitter
+          global.vaultEventEmitter.emit('vault:update');
         }
       } catch (err) {
         if (client) {

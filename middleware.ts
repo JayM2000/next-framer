@@ -16,10 +16,10 @@ export default clerkMiddleware(async (auth, req) => {
     }
 });
 
-// Only run middleware where needed
+// Only run middleware where needed — skip static pages, public routes, assets
 export const config = {
     matcher: [
-        "/((?!_next|favicon.ico|.*\\..*).*)",
-        "/(api|trpc)(.*)", // But we'll explicitly skip webhook inside logic
+        "/(dashboard)(.*)",
+        "/(api|trpc)(.*)",
     ],
 };

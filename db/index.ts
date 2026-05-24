@@ -18,10 +18,11 @@ function createPool() {
         connectionString: process.env.DATABASE_URL,
         max: parseInt(process.env.DATABASE_POOL_MAX ?? "10"),
         idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 5_000,
+        connectionTimeoutMillis: 3_000,
         ssl: caCert
             ? { rejectUnauthorized: false, ca: caCert }
             : false,
+        keepAlive: true
     });
 }
 
