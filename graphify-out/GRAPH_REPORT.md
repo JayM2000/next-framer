@@ -1,11 +1,11 @@
-# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-05-24)
+# Graph Report - C:\Users\misal\OneDrive\Documents\next-framer  (2026-06-20)
 
 ## Corpus Check
-- 87 files · ~83,352 words
+- 89 files · ~83,560 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 221 nodes · 165 edges · 73 communities detected
+- 224 nodes · 167 edges · 73 communities detected
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -85,70 +85,70 @@
 - [[_COMMUNITY_Community 72|Community 72]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `query()` - 9 edges
+1. `query()` - 8 edges
 2. `POST()` - 5 edges
 3. `formatWithTimezone()` - 5 edges
-4. `cleanupExpiredItems()` - 3 edges
-5. `GET()` - 3 edges
+4. `GET()` - 4 edges
+5. `cleanupExpiredItems()` - 3 edges
 6. `handleKeyDown()` - 3 edges
 7. `withTransaction()` - 3 edges
 8. `decryptItemFieldsServer()` - 3 edges
-9. `useVault()` - 3 edges
-10. `getQueryClient()` - 3 edges
+9. `VaultProvider()` - 3 edges
+10. `useVault()` - 3 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
+- `GET()` --calls--> `query()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\app\api\vehicle-parts\list\route.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
 - `query()` --calls--> `migrate()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\migrate-users.mjs
 - `query()` --calls--> `runSchemas()`  [INFERRED]
   C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\db\run-schemas.mjs
-- `query()` --calls--> `cleanupExpiredItems()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
-- `query()` --calls--> `upsertTagsForItem()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
-- `decryptItemFieldsServer()` --calls--> `formatItem()`  [INFERRED]
-  C:\Users\misal\OneDrive\Documents\next-framer\lib\vault\server-crypto.ts → C:\Users\misal\OneDrive\Documents\next-framer\trpc\routers\vault.ts
+- `cleanupExpiredItems()` --calls--> `query()`  [INFERRED]
+  C:\Users\misal\OneDrive\Documents\next-framer\server.js → C:\Users\misal\OneDrive\Documents\next-framer\db\index.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.1
-Nodes (13): query(), withTransaction(), migrate(), GET(), POST(), runSchemas(), cleanupExpiredItems(), getCleanupPool() (+5 more)
+Cohesion: 0.12
+Nodes (6): Dashboard(), useSocket(), useSSE(), useVault(), VaultProvider(), VaultItemRow()
 
 ### Community 1 - "Community 1"
 Cohesion: 0.15
-Nodes (5): Dashboard(), useSocket(), useVault(), VaultProvider(), VaultItemRow()
+Nodes (9): GET(), decryptItemFieldsServer(), decryptText(), encryptItemFieldsServer(), encryptText(), extractAutoTags(), extractUrls(), formatItem() (+1 more)
 
 ### Community 2 - "Community 2"
+Cohesion: 0.16
+Nodes (7): query(), withTransaction(), migrate(), POST(), runSchemas(), cleanupExpiredItems(), getCleanupPool()
+
+### Community 3 - "Community 3"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 3 - "Community 3"
+### Community 4 - "Community 4"
 Cohesion: 0.39
 Nodes (5): formatLocalDate(), formatLocalShort(), formatLocalTime(), formatWithTimezone(), getSystemTimezone()
 
-### Community 4 - "Community 4"
+### Community 5 - "Community 5"
 Cohesion: 0.25
 Nodes (0): 
 
-### Community 5 - "Community 5"
+### Community 6 - "Community 6"
 Cohesion: 0.33
 Nodes (2): autoLinkText(), handleInsert()
 
-### Community 6 - "Community 6"
+### Community 7 - "Community 7"
 Cohesion: 0.33
 Nodes (2): DashboardContent(), useSidebar()
 
-### Community 7 - "Community 7"
+### Community 8 - "Community 8"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 8 - "Community 8"
-Cohesion: 0.4
-Nodes (3): getQueryClient(), TRPCProvider(), makeQueryClient()
-
 ### Community 9 - "Community 9"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (3): getQueryClient(), TRPCProvider(), makeQueryClient()
 
 ### Community 10 - "Community 10"
 Cohesion: 0.4
@@ -159,8 +159,8 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 12 - "Community 12"
-Cohesion: 0.6
-Nodes (4): decryptItemFieldsServer(), decryptText(), encryptItemFieldsServer(), encryptText()
+Cohesion: 0.4
+Nodes (0): 
 
 ### Community 13 - "Community 13"
 Cohesion: 0.5
@@ -509,15 +509,15 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `formatItem()` connect `Community 0` to `Community 12`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
-- **Why does `decryptItemFieldsServer()` connect `Community 12` to `Community 0`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Are the 7 inferred relationships involving `query()` (e.g. with `cleanupExpiredItems()` and `POST()`) actually correct?**
-  _`query()` has 7 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `query()` connect `Community 2` to `Community 1`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
+- **Why does `upsertTagsForItem()` connect `Community 1` to `Community 2`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Are the 6 inferred relationships involving `query()` (e.g. with `cleanupExpiredItems()` and `POST()`) actually correct?**
+  _`query()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `POST()` (e.g. with `query()` and `withTransaction()`) actually correct?**
   _`POST()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `GET()` (e.g. with `query()` and `extractAutoTags()`) actually correct?**
   _`GET()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
