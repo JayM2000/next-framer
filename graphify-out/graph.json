@@ -2448,8 +2448,8 @@
       "source_file": "C:\\Users\\misal\\OneDrive\\Documents\\next-framer\\lib\\vault\\store.tsx",
       "source_location": "L157",
       "weight": 1.0,
-      "_src": "store_vaultprovider",
-      "_tgt": "sseprovider_usesse",
+      "_src": "sseprovider_usesse",
+      "_tgt": "store_vaultprovider",
       "source": "sseprovider_usesse",
       "target": "store_vaultprovider"
     },
