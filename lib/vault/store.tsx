@@ -44,6 +44,7 @@ interface UIState {
   activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
   drawerOpen: boolean;
   sidebarOpen: boolean;
+  activeSessionId: string | null;
 }
 
 type UIAction =
@@ -54,7 +55,8 @@ type UIAction =
   | { type: 'SET_TAB'; tab: UIState['activeTab'] }
   | { type: 'SET_DRAWER'; open: boolean }
   | { type: 'SET_CATEGORY'; category: UIState['activeCategory'] }
-  | { type: 'SET_SIDEBAR'; open: boolean };
+  | { type: 'SET_SIDEBAR'; open: boolean }
+  | { type: 'SET_ACTIVE_SESSION'; sessionId: string | null };
 
 const initialUIState: UIState = {
   searchQuery: '',
@@ -64,6 +66,7 @@ const initialUIState: UIState = {
   activeCategory: 'all',
   drawerOpen: false,
   sidebarOpen: false,
+  activeSessionId: null,
 };
 
 function uiReducer(state: UIState, action: UIAction): UIState {
@@ -84,6 +87,8 @@ function uiReducer(state: UIState, action: UIAction): UIState {
       return { ...state, sidebarOpen: action.open };
     case 'SET_CATEGORY':
       return { ...state, activeCategory: action.category };
+    case 'SET_ACTIVE_SESSION':
+      return { ...state, activeSessionId: action.sessionId };
     default:
       return state;
   }
@@ -422,6 +427,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         case 'SET_CATEGORY':
           uiDispatch(action);
           break;
+        case 'SET_ACTIVE_SESSION':
+          uiDispatch(action);
+          break;
 
         // LOGIN/LOGOUT handled by Clerk, not local state
         case 'LOGIN':
@@ -454,6 +462,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       activeCategory: ui.activeCategory,
       drawerOpen: ui.drawerOpen,
       sidebarOpen: ui.sidebarOpen,
+      activeSessionId: ui.activeSessionId,
     }),
     [finalItems, ui]
   );

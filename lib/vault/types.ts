@@ -53,6 +53,8 @@ export interface AppState {
   activeCategory: 'all' | 'passwords' | 'notes' | 'clipboard' | 'private' | 'trash';
   drawerOpen: boolean;
   sidebarOpen: boolean;
+  // Session-based canvas editor state
+  activeSessionId: string | null;
 }
 
 export type AppAction =
@@ -73,4 +75,117 @@ export type AppAction =
   | { type: 'SET_TAB'; tab: AppState['activeTab'] }
   | { type: 'SET_DRAWER'; open: boolean }
   | { type: 'SET_CATEGORY'; category: AppState['activeCategory'] }
-  | { type: 'SET_SIDEBAR'; open: boolean };
+  | { type: 'SET_SIDEBAR'; open: boolean }
+  | { type: 'SET_ACTIVE_SESSION'; sessionId: string | null };
+
+// ══════════════════════════════════════════════════════════
+//  SESSION / CANVAS EDITOR TYPES
+// ══════════════════════════════════════════════════════════
+
+export type BlockType = 'text' | 'image' | 'password' | 'note' | 'divider' | 'code' | 'link' | 'session-embed';
+
+export interface Session {
+  id: string;
+  title: string;
+  emoji: string;
+  ownerId: number | null;
+  isPublic: boolean;
+  isEncrypted: boolean;
+  tags: Tag[];
+  position: number;
+  parentId: string | null;
+  copyCount: number;
+  viewCount: number;
+  isDeleted: boolean;
+  isPinned: boolean;
+  lastVisitedAt: string | null;
+  canvasX: number | null;
+  canvasY: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionBlock {
+  id: string;
+  sessionId: string;
+  type: BlockType;
+  content: Record<string, unknown>;
+  position: number;
+  isEncrypted: boolean;
+  createdBy: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionWithBlocks extends Session {
+  blocks: SessionBlock[];
+  backlinks: { sessionId: string; title: string; emoji: string }[];
+}
+
+export interface SessionDashboardData {
+  recentlyVisited: (Session & { preview: string })[];
+  trending: (Session & { preview: string })[];
+  pinned: (Session & { preview: string })[];
+}
+
+export interface PresenceEntry {
+  userId: string | null;
+  displayName: string;
+  avatarColor: string;
+  isEditing: boolean;
+  lastSeen: number;
+  showPublicProfile: boolean;
+  viewerId: string;
+}
+
+// Block content shapes
+export interface TextBlockContent {
+  html: string;
+  plainText: string;
+}
+
+export interface ImageBlockContent {
+  url: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  caption: string;
+}
+
+export interface PasswordBlockContent {
+  label: string;
+  username: string;
+  encryptedPassword: string;
+  url: string;
+  notes: string;
+  encryptionIv?: string;
+  encryptedUsername?: string;
+}
+
+export interface NoteBlockContent {
+  title: string;
+  body: string;
+  color: string;
+}
+
+export interface CodeBlockContent {
+  language: string;
+  code: string;
+}
+
+export interface LinkBlockContent {
+  url: string;
+  title: string;
+  description: string;
+  favicon: string;
+}
+
+export interface DividerBlockContent {
+  style: 'solid' | 'dashed' | 'gradient';
+}
+
+export interface SessionEmbedBlockContent {
+  targetSessionId: string;
+  targetTitle: string;
+  preview: string;
+}

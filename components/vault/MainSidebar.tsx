@@ -1,63 +1,98 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useVault } from '@/lib/vault/store';
-import { 
-  Plus, 
-  LayoutDashboard, 
-  Lock, 
-  KeyRound, 
-  FileText, 
-  ClipboardCopy, 
-  Settings, 
-  Trash2,
+import { trpc } from '@/trpc/client';
+import {
+  Plus,
   Shield,
-  Menu
+  Settings,
+  Trash2,
+  Menu,
+  LayoutDashboard,
 } from 'lucide-react';
-import { AppState } from '@/lib/vault/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import SettingsModal from './SettingsModal';
+import SessionListItem from '@/components/sidebar/SessionListItem';
+import SidebarSearch from '@/components/sidebar/SidebarSearch';
 
 export default function MainSidebar() {
   const { state, dispatch } = useVault();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleCategoryChange = (category: AppState['activeCategory']) => {
-    dispatch({ type: 'SET_CATEGORY', category });
-    
-    // Automatically switch tabs for mobile view based on category
-    if (category === 'private' || category === 'trash') {
-      dispatch({ type: 'SET_TAB', tab: 'vault' });
-    } else {
-      dispatch({ type: 'SET_TAB', tab: 'dashboard' });
-    }
+  const utils = trpc.useUtils();
 
-    // On mobile, automatically close the sidebar overlay after selection
+  // Sessions data
+  const { data: sessions = [] } = trpc.sessions.getSessions.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  const createSession = trpc.sessions.createSession.useMutation({
+    onSuccess: (newSession) => {
+      utils.sessions.getSessions.invalidate();
+      dispatch({ type: 'SET_ACTIVE_SESSION', sessionId: newSession.id });
+    },
+  });
+
+  const deleteSession = trpc.sessions.deleteSession.useMutation({
+    onSuccess: () => {
+      utils.sessions.getSessions.invalidate();
+      if (state.activeSessionId) {
+        dispatch({ type: 'SET_ACTIVE_SESSION', sessionId: null });
+      }
+    },
+  });
+
+  const duplicateSession = trpc.sessions.duplicateSession.useMutation({
+    onSuccess: () => utils.sessions.getSessions.invalidate(),
+  });
+
+  const updateSession = trpc.sessions.updateSession.useMutation({
+    onSuccess: () => utils.sessions.getSessions.invalidate(),
+  });
+
+  // Filter sessions by search
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery) return sessions;
+    const q = searchQuery.toLowerCase();
+    return sessions.filter(s =>
+      s.title.toLowerCase().includes(q) ||
+      s.tags.some(t => t.label.toLowerCase().includes(q))
+    );
+  }, [sessions, searchQuery]);
+
+  // Separate root sessions and children
+  const rootSessions = useMemo(() => filteredSessions.filter(s => !s.parentId), [filteredSessions]);
+
+  const handleNewSession = useCallback(() => {
+    createSession.mutate({ title: 'Untitled Session', emoji: '📄' });
+    // Close mobile sidebar
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
       dispatch({ type: 'SET_SIDEBAR', open: false });
     }
-  };
+  }, [createSession, dispatch]);
 
-  const navItems = [
-    { label: 'Dashboard', icon: LayoutDashboard, category: 'all' },
-    { label: 'Private Vault', icon: Lock, category: 'private' },
-  ] as const;
+  const handleOpenSession = useCallback((sessionId: string) => {
+    dispatch({ type: 'SET_ACTIVE_SESSION', sessionId });
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      dispatch({ type: 'SET_SIDEBAR', open: false });
+    }
+  }, [dispatch]);
 
-  const categoryItems = [
-    { label: 'Passwords', icon: KeyRound, category: 'passwords' },
-    { label: 'Secure Notes', icon: FileText, category: 'notes' },
-    { label: 'Clipboard Snippets', icon: ClipboardCopy, category: 'clipboard' },
-  ] as const;
-
-  const systemItems = [
-    { label: 'Settings', icon: Settings, category: null, action: () => setSettingsOpen(true) },
-    { label: 'Trash', icon: Trash2, category: 'trash', action: undefined },
-  ];
+  const handleGoToDashboard = useCallback(() => {
+    dispatch({ type: 'SET_ACTIVE_SESSION', sessionId: null });
+    dispatch({ type: 'SET_CATEGORY', category: 'all' });
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      dispatch({ type: 'SET_SIDEBAR', open: false });
+    }
+  }, [dispatch]);
 
   return (
     <TooltipProvider delayDuration={0}>
       <aside className="h-full w-full flex flex-col">
-      
+
         {/* Top Fixed Area */}
         <div className={`flex shrink-0 items-center border-b border-white/[0.06] h-14 transition-all ${state.sidebarOpen ? 'px-4' : 'px-0 justify-center'}`}>
           <div className="flex items-center gap-2 w-full">
@@ -67,7 +102,7 @@ export default function MainSidebar() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            
+
             {state.sidebarOpen && (
               <div className="flex items-center gap-2 overflow-hidden">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--vault-gold)] to-[var(--vault-gold-light)]">
@@ -83,12 +118,13 @@ export default function MainSidebar() {
 
         {/* Scrollable Center Area */}
         <div className="flex-1 overflow-y-auto p-4">
+
           {/* Logo when collapsed */}
           {!state.sidebarOpen && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => handleCategoryChange('all')}
+                  onClick={handleGoToDashboard}
                   className="mb-6 flex w-full items-center justify-center transition-transform hover:scale-105"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--vault-gold)] to-[var(--vault-gold-light)] shadow-lg shadow-[var(--vault-gold)]/20">
@@ -97,154 +133,218 @@ export default function MainSidebar() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">
-                Go to Home page
+                Go to Dashboard
               </TooltipContent>
             </Tooltip>
           )}
 
-          {/* Quick Action */}
-      {!state.sidebarOpen ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
+          {/* New Session Button */}
+          {!state.sidebarOpen ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleNewSession}
+                  className="vault-btn-primary mb-4 flex w-full items-center justify-center gap-2 p-2"
+                >
+                  <Plus className="h-4 w-4 shrink-0" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">
+                New Session
+              </TooltipContent>
+            </Tooltip>
+          ) : (
             <button
-              onClick={() => dispatch({ type: 'SET_DRAWER', open: true })}
-              className={`vault-btn-primary mb-6 flex w-full items-center justify-center gap-2 p-2`}
+              onClick={handleNewSession}
+              className="vault-btn-primary mb-4 flex w-full items-center justify-center gap-2"
             >
               <Plus className="h-4 w-4 shrink-0" />
+              <span className="truncate">New Session</span>
             </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">New Item</TooltipContent>
-        </Tooltip>
-      ) : (
-        <button
-          onClick={() => dispatch({ type: 'SET_DRAWER', open: true })}
-          className="vault-btn-primary mb-6 flex w-full items-center justify-center gap-2"
-        >
-          <Plus className="h-4 w-4 shrink-0" /> <span className="truncate">New Item</span>
-        </button>
-      )}
+          )}
 
-      {/* Main Nav */}
-      <div className="mb-6 space-y-1">
-        {navItems.map((item) => {
-          const isActive = state.activeCategory === item.category;
-          const buttonContent = (
+          {/* Dashboard link */}
+          {!state.sidebarOpen ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleGoToDashboard}
+                  className={`flex w-full items-center justify-center rounded-lg py-2 transition-all mb-4 ${
+                    !state.activeSessionId
+                      ? 'bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
+                      : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)]'
+                  }`}
+                >
+                  <LayoutDashboard className={`h-4 w-4 ${!state.activeSessionId ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">
+                Dashboard
+              </TooltipContent>
+            </Tooltip>
+          ) : (
             <button
-              key={item.category}
-              onClick={() => handleCategoryChange(item.category)}
-              className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition-all ${
-                state.sidebarOpen ? 'gap-3 px-3' : 'justify-center px-0'
-              } ${
-                isActive
+              onClick={handleGoToDashboard}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all mb-2 ${
+                !state.activeSessionId
                   ? 'bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
-                  : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors'
+                  : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)]'
               }`}
             >
-              <item.icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
-              {state.sidebarOpen && <span className="truncate">{item.label}</span>}
+              <LayoutDashboard className={`h-4 w-4 shrink-0 ${!state.activeSessionId ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
+              <span className="truncate">Dashboard</span>
             </button>
-          );
+          )}
 
-          return !state.sidebarOpen ? (
-            <Tooltip key={item.category}>
-              <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
-              <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">{item.label}</TooltipContent>
-            </Tooltip>
-          ) : buttonContent;
-        })}
-      </div>
+          {/* Search */}
+          {state.sidebarOpen && (
+            <div className="mb-4">
+              <SidebarSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+                isCollapsed={!state.sidebarOpen}
+              />
+            </div>
+          )}
 
-      {/* Categories */}
-      <div className="mb-6">
-        {state.sidebarOpen && (
-          <h4 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-[var(--vault-muted)]">
-            Categories
-          </h4>
-        )}
-        <div className="space-y-1">
-          {categoryItems.map((item) => {
-            const isActive = state.activeCategory === item.category;
-            const buttonContent = (
-              <button
-                key={item.category}
-                onClick={() => handleCategoryChange(item.category)}
-                className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition-all ${
-                  state.sidebarOpen ? 'gap-3 px-3' : 'justify-center px-0'
-                } ${
-                  isActive
-                    ? 'bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
-                    : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors'
-                }`}
-              >
-                <item.icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
-                {state.sidebarOpen && <span className="truncate">{item.label}</span>}
-              </button>
-            );
+          {/* Sessions List */}
+          {state.sidebarOpen && (
+            <div className="mb-6">
+              <h4 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-[var(--vault-muted)]">
+                Sessions
+              </h4>
+              <div className="space-y-0.5">
+                <AnimatePresence>
+                  {rootSessions.map(session => (
+                    <SessionListItem
+                      key={session.id}
+                      session={session}
+                      isActive={state.activeSessionId === session.id}
+                      isCollapsed={!state.sidebarOpen}
+                      onClick={() => handleOpenSession(session.id)}
+                      onDelete={() => deleteSession.mutate({ id: session.id })}
+                      onDuplicate={() => duplicateSession.mutate({ id: session.id })}
+                      onTogglePin={() => updateSession.mutate({ id: session.id, isPinned: !session.isPinned })}
+                      onRename={(newTitle) => updateSession.mutate({ id: session.id, title: newTitle })}
+                    />
+                  ))}
+                </AnimatePresence>
 
-            return !state.sidebarOpen ? (
-              <Tooltip key={item.category}>
-                <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
-                <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">{item.label}</TooltipContent>
-              </Tooltip>
-            ) : buttonContent;
-          })}
-        </div>
-      </div>
+                {rootSessions.length === 0 && (
+                  <div className="py-4 text-center text-xs text-[var(--vault-muted)]">
+                    {searchQuery ? 'No matching sessions' : 'No sessions yet'}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-      {/* System */}
-      <div>
-        {state.sidebarOpen && (
-          <h4 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-[var(--vault-muted)]">
-            System
-          </h4>
-        )}
-        <div className="space-y-1">
-          {systemItems.map((item) => {
-            const isActive = item.category ? state.activeCategory === item.category : false;
-            const buttonContent = (
-              <button
-                key={item.label}
-                onClick={() => item.action ? item.action() : handleCategoryChange(item.category as AppState['activeCategory'])}
-                className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition-all ${
-                  state.sidebarOpen ? 'gap-3 px-3' : 'justify-center px-0'
-                } ${
-                  isActive
-                    ? 'bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
-                    : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors'
-                }`}
-              >
-                <item.icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
-                {state.sidebarOpen && <span className="truncate">{item.label}</span>}
-              </button>
-            );
+          {/* Collapsed sessions list */}
+          {!state.sidebarOpen && (
+            <div className="space-y-1 mb-6">
+              {rootSessions.slice(0, 8).map(session => (
+                <SessionListItem
+                  key={session.id}
+                  session={session}
+                  isActive={state.activeSessionId === session.id}
+                  isCollapsed={true}
+                  onClick={() => handleOpenSession(session.id)}
+                  onDelete={() => deleteSession.mutate({ id: session.id })}
+                  onDuplicate={() => duplicateSession.mutate({ id: session.id })}
+                  onTogglePin={() => updateSession.mutate({ id: session.id, isPinned: !session.isPinned })}
+                  onRename={(newTitle) => updateSession.mutate({ id: session.id, title: newTitle })}
+                />
+              ))}
+            </div>
+          )}
 
-            return !state.sidebarOpen ? (
-              <Tooltip key={item.label}>
-                <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
-                <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">{item.label}</TooltipContent>
-              </Tooltip>
-            ) : buttonContent;
-          })}
-        </div>
-      </div>
-      </div>
+          {/* System */}
+          <div>
+            {state.sidebarOpen && (
+              <h4 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-[var(--vault-muted)]">
+                System
+              </h4>
+            )}
+            <div className="space-y-1">
+              {/* Settings */}
+              {!state.sidebarOpen ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setSettingsOpen(true)}
+                      className="flex w-full items-center justify-center rounded-lg py-2 text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors"
+                    >
+                      <Settings className="h-4 w-4 text-[var(--vault-muted)]" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">Settings</TooltipContent>
+                </Tooltip>
+              ) : (
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)] transition-colors"
+                >
+                  <Settings className="h-4 w-4 text-[var(--vault-muted)]" />
+                  <span className="truncate">Settings</span>
+                </button>
+              )}
 
-      {/* Bottom Fixed Area */}
-      <div className={`shrink-0 border-t border-white/[0.06] p-4 transition-all ${
-         state.sidebarOpen ? 'text-left' : 'text-center'
-      }`}>
-        {state.sidebarOpen ? (
-          <div className="flex flex-col gap-1 text-[10px] text-[var(--vault-muted)]">
-            <span>© {new Date().getFullYear()} Vault App.</span>
-            <span>Version 1.0.0</span>
+              {/* Trash */}
+              {!state.sidebarOpen ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        dispatch({ type: 'SET_CATEGORY', category: 'trash' });
+                        dispatch({ type: 'SET_ACTIVE_SESSION', sessionId: null });
+                      }}
+                      className={`flex w-full items-center justify-center rounded-lg py-2 transition-all ${
+                        state.activeCategory === 'trash'
+                          ? 'bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
+                          : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)]'
+                      }`}
+                    >
+                      <Trash2 className={`h-4 w-4 ${state.activeCategory === 'trash' ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="border-[var(--vault-border)] bg-[var(--vault-panel)] text-[var(--vault-text)]">Trash</TooltipContent>
+                </Tooltip>
+              ) : (
+                <button
+                  onClick={() => {
+                    dispatch({ type: 'SET_CATEGORY', category: 'trash' });
+                    dispatch({ type: 'SET_ACTIVE_SESSION', sessionId: null });
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    state.activeCategory === 'trash'
+                      ? 'bg-[var(--vault-gold)]/10 text-[var(--vault-gold)]'
+                      : 'text-[var(--vault-text)] hover:bg-[var(--vault-glass-hover)]'
+                  }`}
+                >
+                  <Trash2 className={`h-4 w-4 ${state.activeCategory === 'trash' ? 'text-[var(--vault-gold)]' : 'text-[var(--vault-muted)]'}`} />
+                  <span className="truncate">Trash</span>
+                </button>
+              )}
+            </div>
           </div>
-        ) : (
-           <span className="text-[10px] font-bold text-[var(--vault-muted)]">v1</span>
-        )}
-      </div>
+        </div>
 
-    </aside>
-    <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        {/* Bottom Fixed Area */}
+        <div className={`shrink-0 border-t border-white/[0.06] p-4 transition-all ${
+          state.sidebarOpen ? 'text-left' : 'text-center'
+        }`}>
+          {state.sidebarOpen ? (
+            <div className="flex flex-col gap-1 text-[10px] text-[var(--vault-muted)]">
+              <span>© {new Date().getFullYear()} Vault App.</span>
+              <span>Version 2.0.0</span>
+            </div>
+          ) : (
+            <span className="text-[10px] font-bold text-[var(--vault-muted)]">v2</span>
+          )}
+        </div>
+
+      </aside>
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </TooltipProvider>
   );
 }

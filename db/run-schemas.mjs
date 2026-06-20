@@ -42,6 +42,13 @@ const schemaFiles = [
   "vault_migrations_003.sql",
   "vault_migrations_004.sql",
   "vault_migrations_005.sql",
+  "sessions.sql",
+  "session_blocks.sql",
+  "session_tags.sql",
+  "session_links.sql",
+  "session_presence.sql",
+  "vault_migrations_006.sql",
+  "sessions_migrations_001.sql",
 ];
 
 async function runSchemas() {
